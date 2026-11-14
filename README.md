@@ -1,36 +1,65 @@
 <div align="center">
-  <img src="https://readme-typing-svg.herokuapp.com/?font=Fira+Code&size=22&duration=3000&pause=1000&color=0078D4&center=true&vCenter=true&width=600&lines=Full-Stack+Developer;Open+Source+Enthusiast;AI%2FML+Explorer;Building+Cool+Things+🚀" alt="Typing Animation" />
-</div>
 
-<div align="center">
+![aurora](assets/aurora.svg)
 
-![Profile Views](https://komarev.com/ghpvc/?username=noontiger&color=0078D4&style=flat-square&label=Profile+Views)
-<a href="https://github.com/noontiger" target="_blank">
-  <img src="https://img.shields.io/github/followers/noontiger?style=flat-square&color=0078D4&logo=github&label=Follow" alt="Follow" />
-</a>
-<a href="https://www.npmjs.com/package/droidseal" target="_blank">
-  <img src="https://img.shields.io/npm/dm/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20downloads" alt="npm downloads" />
-</a>
-<a href="https://www.npmjs.com/package/droidseal" target="_blank">
-  <img src="https://img.shields.io/npm/dt/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20total" alt="npm total downloads" />
-</a>
+# 👋 Hi, I'm **newnju**
+
+**Full-Stack Developer · Open Source Enthusiast · AI/ML Explorer**
+
+[![typing](assets/typing.svg)](https://github.com/newnju)
+
+[![profile views](https://komarev.com/ghpvc/?username=newnju&color=0078D4&style=flat-square&label=Profile+Views)](https://github.com/newnju)
+[![followers](https://img.shields.io/github/followers/newnju?style=flat-square&color=0078D4&logo=github&label=Follow)](https://github.com/newnju)
+[![repos](https://img.shields.io/github/repos/newnju?style=flat-square&color=2EA043&logo=github&label=Repos)](https://github.com/newnju?tab=repositories)
 
 </div>
 
 ---
 
-## 🃏 Random Dev Joke
+## 📡 Live Activity
 
 <div align="center">
-  <img src="https://readme-jokes.vercel.app/api?theme=github&hideBorder=true&layout=horizontal&width=600" alt="Random Dev Joke" />
+
+![spotlight](assets/spotlight.svg)
+
+![ticker](assets/ticker.svg)
+
 </div>
 
 ---
 
-## 📊 Repository Language Distribution
+## 📊 Stats & Composition
 
 <div align="center">
-  <img src="assets/lang-dist.svg" alt="Repository Language Distribution" />
+
+![stats](assets/stats.svg)
+
+![top-languages](assets/top-languages.svg)
+
+</div>
+
+<div align="center">
+
+<img src="assets/skill-radar.svg" width="460" alt="language radar" />
+
+</div>
+
+<div align="center">
+
+![heatmap](assets/heatmap.svg)
+
+![pulse](assets/pulse.svg)
+
+</div>
+
+---
+
+## 🐍 Contribution Snake
+
+<div align="center">
+
+![snake](assets/snake.svg)
+
 </div>
 
 ---
@@ -38,38 +67,184 @@
 ## 📡 Radar Scan
 
 <div align="center">
-  <img src="assets/radar-scan.svg" alt="Radar Scan" />
+
+![radar](assets/radar-scan.svg)
+
 </div>
 
 ---
 
-## 📈 Tech Timeline
+## 🛠️ Tech Timeline
 
 <div align="center">
-  <img src="assets/timeline.svg" alt="Tech Timeline" />
+
+![timeline](assets/timeline.svg)
+
 </div>
 
 ---
 
-## 💡 Currently Exploring
-
-- 🤖 **LLM Agents & Multi-Agent Systems** — Building autonomous AI workflows
-- 🎥 **Generative Video & 3D** — AI-powered content creation pipelines
-- 🦀 **Rust & Systems Programming** — Performance-critical applications
-- ☸️ **Kubernetes & Cloud Native** — Scalable infrastructure patterns
-
----
-
-## 🐍 GitHub Contribution Snake
+## 💻 Two Computers, One Passion
 
 <div align="center">
-  <img src="assets/snake.svg" alt="Contribution Snake" />
+
+![two-pcs](assets/two-pcs.svg)
+
 </div>
 
 ---
 
+## 🎨 More Animations
+
+<details>
+<summary><b>🖥️ Terminal · Neofetch · Code Window</b></summary>
+
 <div align="center">
-  <sub>⚡ Data sourced from GitHub REST API • Last updated: 2026</sub>
-  <br>
-  <sub>🔄 Assets auto-regenerated daily via GitHub Actions</sub>
+
+![terminal](assets/terminal.svg)
+
+![neofetch](assets/neofetch.svg)
+
+![codewindow](assets/codewindow.svg)
+
 </div>
+
+</details>
+
+<details>
+<summary><b>🌐 Globe · Particles · Circuit Board · Neural Net</b></summary>
+
+<div align="center">
+
+![globe](assets/globe.svg)
+
+![particles](assets/particles.svg)
+
+![circuit](assets/circuit-board.svg)
+
+![neural](assets/neural-network.svg)
+
+</div>
+
+</details>
+
+<details>
+<summary><b>🌧️ Matrix · Fireworks · Conway · DNA</b></summary>
+
+<div align="center">
+
+![matrix](assets/matrix-rain.svg)
+
+![fireworks](assets/fireworks.svg)
+
+![conway](assets/conway.svg)
+
+![dna](assets/dna.svg)
+
+</div>
+
+</details>
+
+<details>
+<summary><b>🚀 Rocket · Solar · Atom · Radar · Moon</b></summary>
+
+<div align="center">
+
+![rocket](assets/rocket.svg)
+
+![solar](assets/solar.svg)
+
+![atom](assets/atom.svg)
+
+![radar-small](assets/radar.svg)
+
+![moon](assets/moon.svg)
+
+</div>
+
+</details>
+
+<details>
+<summary><b>🎵 Music · Coffee · Pac-Man · Octocat · Day/Night</b></summary>
+
+<div align="center">
+
+![music](assets/music.svg)
+
+![coffee](assets/coffee.svg)
+
+![pacman](assets/pacman.svg)
+
+![octocat](assets/octocat.svg)
+
+![daynight](assets/daynight.svg)
+
+</div>
+
+</details>
+
+---
+
+## 🧩 Toolkit
+
+<div align="center">
+
+![techstack](assets/techstack.svg)
+
+![metrics](assets/metrics.svg)
+
+![bento](assets/bento.svg)
+
+</div>
+
+---
+
+## 💬 Fun Corner
+
+<div align="center">
+
+![joke](assets/joke.svg)
+
+![quote](assets/quote.svg)
+
+</div>
+
+---
+
+## 📦 Packages
+
+<div align="center">
+
+[![npm](https://img.shields.io/npm/dm/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20downloads)](https://www.npmjs.com/package/droidseal)
+[![npm total](https://img.shields.io/npm/dt/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20total)](https://www.npmjs.com/package/droidseal)
+[![pyPI](https://img.shields.io/pypi/dm/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20monthly)](https://pypi.org/project/droidseal/)
+[![pyPI total](https://img.shields.io/pypi/dt/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20total)](https://pypi.org/project/droidseal/)
+
+</div>
+
+---
+
+## 💭 Currently Exploring
+
+- 🤖 **LLM Agents & Multi-Agent Systems** — autonomous workflows, tool use, eval harnesses
+- 🎥 **Generative Video & 3D** — real-time pipelines and asset tooling
+- 🦀 **Rust & Systems Programming** — performance-critical internals
+- ☸️ **Kubernetes & Cloud Native** — deployment, scaling, observability
+
+---
+
+<div align="center">
+
+![footer](assets/footer.svg)
+
+</div>
+
+---
+
+### 🛠️ How these work
+
+- Every animation is a **self-contained SVG** using only SMIL — no external image host, no tracking pixel, no rate limit. They keep animating on github.com without a browser-side dependency.
+- `assets/*.svg` is regenerated by `scripts/generate_all.py` and `scripts/generate_animated.py`, driven by the **live GitHub REST API** — the stats cards, language mix, repo ticker and 26-week heatmap all show real numbers for this account. A scheduled workflow refreshes them daily.
+- Some remote services (`readme-typing-svg.herokuapp.com`, `readme-jokes.vercel.app`) are no longer reachable, so their equivalents are rendered locally instead.
+
+⭐️ From [newnju](https://github.com/newnju)

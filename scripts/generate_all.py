@@ -4,16 +4,17 @@ Generate all profile assets locally for GitHub README
 Run via GitHub Actions, saves static files to assets/
 """
 
+import html
 import os
 import requests
 from datetime import datetime
 from pathlib import Path
 
-ASSETS_DIR = Path("assets")
-ASSETS_DIR.mkdir(exist_ok=True)
+ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-USERNAME = "noontiger"
+USERNAME = "newnju"
 HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 
 def fetch_github_api(url):
@@ -303,7 +304,7 @@ def generate_terminal():
   <circle cx="65" cy="25" r="8" fill="#27c93f"/>
   
   <text x="20" y="80" font-family="Courier New" font-size="14" fill="#00ff00">$ whoami</text>
-  <text x="20" y="110" font-family="Courier New" font-size="14" fill="#ffffff">noontiger</text>
+  <text x="20" y="110" font-family="Courier New" font-size="14" fill="#ffffff">{USERNAME}</text>
   <text x="20" y="150" font-family="Courier New" font-size="14" fill="#00ff00">$ cat skills.txt</text>
   <text x="20" y="180" font-family="Courier New" font-size="14" fill="#ff00ff">Python, JavaScript, TypeScript, Rust, Go...</text>
   <text x="20" y="220" font-family="Courier New" font-size="14" fill="#00ffff">$ ./build_awesome.sh</text>
@@ -436,6 +437,9 @@ def generate_timeline():
     nodes = []
     for i, (year, title, icon, color, desc) in enumerate(events):
         x = 80 + i * 115
+        # XML-escape: a raw "&" makes the whole SVG invalid and GitHub drops it
+        title = html.escape(title)
+        desc = html.escape(desc)
         
         nodes.append(f'''
   <g transform="translate({x}, 120)">
@@ -595,11 +599,18 @@ def main():
     generate_snake()
     generate_wakatime()
     generate_lang_dist()
-    
+
     print("Generating new animation assets...")
     generate_radar_scan()
     generate_timeline()
-    
+    generate_terminal()
+    generate_circuit_board()
+    generate_particles()
+
+    print("Generating self-contained animated widgets...")
+    import generate_animated
+    generate_animated.main()
+
     print("All assets generated!")
 
 if __name__ == "__main__":

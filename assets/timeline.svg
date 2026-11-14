@@ -56,7 +56,7 @@
     <!-- Year -->
     <text x="0" y="-18" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#3776AB">2020</text>
     <!-- Title -->
-    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">Python & Web Dev</text>
+    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">Python &amp; Web Dev</text>
     <!-- Description -->
     <text x="0" y="16" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">Django, Flask, REST APIs</text>
   </g>
@@ -79,7 +79,7 @@
     <!-- Year -->
     <text x="0" y="-18" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#3178C6">2021</text>
     <!-- Title -->
-    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">TypeScript & React</text>
+    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">TypeScript &amp; React</text>
     <!-- Description -->
     <text x="0" y="16" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">Next.js, Redux, Testing</text>
   </g>
@@ -102,7 +102,7 @@
     <!-- Year -->
     <text x="0" y="-18" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#FF9900">2022</text>
     <!-- Title -->
-    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">Full-Stack & Cloud</text>
+    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">Full-Stack &amp; Cloud</text>
     <!-- Description -->
     <text x="0" y="16" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">AWS, Docker, CI/CD, K8s</text>
   </g>
@@ -148,7 +148,7 @@
     <!-- Year -->
     <text x="0" y="-18" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#DEA584">2024</text>
     <!-- Title -->
-    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">Systems & Rust</text>
+    <text x="0" y="2" text-anchor="middle" font-family="Arial" font-size="11" font-weight="600" fill="#333">Systems &amp; Rust</text>
     <!-- Description -->
     <text x="0" y="16" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">Rust, WASM, Performance</text>
   </g>
