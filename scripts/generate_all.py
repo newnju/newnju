@@ -611,6 +611,10 @@ def main():
     import generate_animated
     generate_animated.main()
 
+    print("Normalizing every asset to one canonical width...")
+    import normalize_widths
+    normalize_widths.main()
+
     print("All assets generated!")
 
 if __name__ == "__main__":

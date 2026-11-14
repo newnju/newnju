@@ -10,7 +10,7 @@
 
 [![profile views](https://komarev.com/ghpvc/?username=newnju&color=0078D4&style=flat-square&label=Profile+Views)](https://github.com/newnju)
 [![followers](https://img.shields.io/github/followers/newnju?style=flat-square&color=0078D4&logo=github&label=Follow)](https://github.com/newnju)
-[![repos](https://img.shields.io/github/repos/newnju?style=flat-square&color=2EA043&logo=github&label=Repos)](https://github.com/newnju?tab=repositories)
+[![stars](https://img.shields.io/github/stars/newnju?style=flat-square&color=F7C948&logo=github&label=Stars)](https://github.com/newnju?tab=repositories)
 
 </div>
 
@@ -40,7 +40,7 @@
 
 <div align="center">
 
-<img src="assets/skill-radar.svg" width="460" alt="language radar" />
+![skill-radar](assets/skill-radar.svg)
 
 </div>
 
@@ -218,7 +218,7 @@
 [![npm](https://img.shields.io/npm/dm/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20downloads)](https://www.npmjs.com/package/droidseal)
 [![npm total](https://img.shields.io/npm/dt/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20total)](https://www.npmjs.com/package/droidseal)
 [![pyPI](https://img.shields.io/pypi/dm/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20monthly)](https://pypi.org/project/droidseal/)
-[![pyPI total](https://img.shields.io/pypi/dt/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20total)](https://pypi.org/project/droidseal/)
+[![pyPI version](https://img.shields.io/pypi/v/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20version)](https://pypi.org/project/droidseal/)
 
 </div>
 

@@ -113,7 +113,7 @@ def aurora():
         return (
             f'<path d="{d}" fill="url(#{grad})" opacity="{opacity}">'
             f'<animateTransform attributeName="transform" type="translate" '
-            f'from="0 0" to="-{period} 0" dur="{dur}s" repeatCount="indefinite"/>'
+            f'from="0 0" to="-{period} 0" dur="{dur}" repeatCount="indefinite"/>'
             "</path>"
         )
 
