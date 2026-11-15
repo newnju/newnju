@@ -593,121 +593,206 @@ def top_langs():
     return s
 
 
-def pypi_downloads():
-    """PyPI download stats, including a real total.
+def package_downloads():
+    """Total downloads for npm (left) and PyPI (right), side by side.
 
-    PyPI's own JSON API returns ``downloads: -1`` (stats disabled) and
-    shields.io's ``pypi/dt`` badge therefore renders "404: badge not found".
-    pypistats.org still publishes per-day figures, so we sum them ourselves
-    to produce an honest total for the retention window it covers.
+    Accuracy notes, because both sources have traps:
+
+    * PyPI's own JSON API reports ``downloads: -1`` (stats disabled), and
+      shields.io's ``pypi/dt`` badge is therefore permanently "404: badge not
+      found". pypistats.org publishes per-day figures for two categories:
+      ``without_mirrors`` (PyPI's official metric, the one shields.io uses for
+      ``pypi/dm``) and ``with_mirrors`` (adds unofficial mirrors). We use
+      ``without_mirrors`` and label it as such.
+    * pypistats only retains a limited window, so a raw sum is a *window* total
+      unless the window already covers the package's whole life. We therefore
+      fetch PyPI's first upload time and only call the sum a lifetime total when
+      the data starts at or before that date; otherwise we say so explicitly.
+    * npm's ``downloads/range`` endpoint 404s for this package, but
+      ``downloads/point/last-year`` works. Since npm counts from the package's
+      first publish (2026-08-15) and the last-year window starts 2025-11-15,
+      that value is the true lifetime total. We assert that containment rather
+      than assuming it.
     """
     from datetime import date, timedelta
 
     import requests
 
     pkg = "droidseal"
-    daily = {}
+    npm_total = None
+    npm_note = "npm registry"
+    pypi_daily = {}
+    pypi_lifetime = None
+    pypi_note = ""
+
+    # ---- npm ----
     try:
-        r = requests.get(
+        reg = requests.get(f"https://registry.npmjs.org/{pkg}", timeout=30)
+        first_publish = None
+        if reg.status_code == 200:
+            times = reg.json().get("time", {})
+            stamps = sorted(
+                v for k, v in times.items() if k not in ("created", "modified")
+            )
+            if stamps:
+                first_publish = stamps[0][:10]
+        pt = requests.get(
+            f"https://api.npmjs.org/downloads/point/last-year/{pkg}", timeout=30
+        )
+        if pt.status_code == 200:
+            d = pt.json()
+            npm_total = int(d.get("downloads") or 0)
+            # only claim "lifetime" when the window truly covers first publish
+            if first_publish and d.get("start") and d["start"] <= first_publish:
+                npm_note = f"lifetime (since {first_publish})"
+            else:
+                npm_note = f"last 12 months (from {d.get('start')})"
+    except Exception:
+        npm_total = None
+
+    # ---- PyPI ----
+    try:
+        pj = requests.get(f"https://pypi.org/pypi/{pkg}/json", timeout=30)
+        first_upload = None
+        if pj.status_code == 200:
+            rel = pj.json().get("releases", {})
+            stamps = sorted(
+                f["upload_time"]
+                for files in rel.values()
+                for f in files
+                if f.get("upload_time")
+            )
+            if stamps:
+                first_upload = stamps[0][:10]
+
+        ps = requests.get(
             f"https://pypistats.org/api/packages/{pkg}/overall?mirrors=false",
             timeout=30,
         )
-        if r.status_code == 200:
-            for row in r.json().get("data", []):
-                daily[row["date"]] = int(row.get("downloads") or 0)
+        if ps.status_code == 200:
+            for row in ps.json().get("data", []):
+                pypi_daily[row["date"]] = int(row.get("downloads") or 0)
+            if pypi_daily:
+                earliest = min(pypi_daily)
+                if first_upload and earliest <= first_upload:
+                    pypi_lifetime = sum(pypi_daily.values())
+                    pypi_note = f"lifetime (since {first_upload}), mirrors excluded"
+                else:
+                    pypi_lifetime = sum(pypi_daily.values())
+                    pypi_note = (
+                        f"partial: data starts {earliest}, "
+                        f"package from {first_upload}"
+                    )
     except Exception:
-        daily = {}
+        pypi_lifetime = None
 
-    w, h = 800, 250
+    # ---- render ----
+    w, h = 800, 300
     s = open_svg(w, h)
     s += card(w, h)
     s += (
-        f'<text x="24" y="34" font-size="15" font-weight="700" fill="{MUT}">'
-        f"&#128230; pypi downloads &#183; {html.escape(pkg)}</text>"
+        f'<text x="24" y="32" font-size="15" font-weight="700" fill="{MUT}">'
+        f"&#128230; total downloads &#183; {html.escape(pkg)}</text>"
     )
 
-    if not daily:
-        s += (
-            f'<text x="24" y="110" font-size="14" fill="{MUT}">'
-            f"download stats unavailable right now</text>"
-        )
-        s += "</svg>"
-        return s
+    # divider between the two columns
+    s += (
+        f'<line x1="400" y1="50" x2="400" y2="284" '
+        f'stroke="{BORDER}" stroke-width="1" stroke-dasharray="4 4"/>'
+    )
 
+    columns = [
+        ("npm", npm_total, "npm downloads", "CB3837", npm_note, 24),
+        ("pypi", pypi_lifetime, "pypi downloads", "3775A9", pypi_note, 424),
+    ]
+
+    for label, total, sub, color, note, x in columns:
+        s += (
+            f'<text x="{x}" y="70" font-size="13" font-weight="700" '
+            f'fill="{color}">{label.upper()}</text>'
+        )
+        if total is None:
+            s += (
+                f'<text x="{x}" y="126" font-size="34" font-weight="700" fill="{MUT}">'
+                f"unavailable</text>"
+            )
+            continue
+
+        s += (
+            f'<text x="{x}" y="130" font-size="46" font-weight="700" fill="{color}">'
+            f"{total:,}"
+            f'<animate attributeName="opacity" values="0.6;1;0.6" dur="3.4s" repeatCount="indefinite"/>'
+            f"</text>"
+        )
+        s += (
+            f'<text x="{x}" y="152" font-size="12" fill="{MUT}">{sub}</text>'
+        )
+
+        # note, wrapped to two lines of ~34 chars
+        words = note.split()
+        line1, line2 = "", ""
+        for wd in words:
+            if len(line1) + len(wd) + 1 <= 34:
+                line1 = (line1 + " " + wd).strip()
+            else:
+                line2 = (line2 + " " + wd).strip()
+        s += (
+            f'<text x="{x}" y="172" font-size="10" fill="{MUT}">'
+            f"{html.escape(line1)}</text>"
+        )
+        if line2:
+            s += (
+                f'<text x="{x}" y="186" font-size="10" fill="{MUT}">'
+                f"{html.escape(line2)}</text>"
+            )
+
+    # ---- combined bar: npm + pypi, each bar scaled to its own max ----
+    s += (
+        f'<text x="24" y="216" font-size="11" font-weight="700" fill="{MUT}">'
+        f"last 60 days</text>"
+    )
     today = date.today()
     days = 60
     start = today - timedelta(days=days - 1)
-    series = [daily.get((start + timedelta(days=i)).isoformat(), 0) for i in range(days)]
-
-    total = sum(daily.values())
-    total30 = sum(
-        v for d, v in daily.items()
-        if d >= (today - timedelta(days=29)).isoformat()
-    )
-    peak_day, peak_val = max(daily.items(), key=lambda kv: kv[1]) if daily else ("-", 0)
-
-    # big total + sub-label
-    s += (
-        f'<text x="24" y="100" font-size="48" font-weight="700" fill="{BLUE}">'
-        f"{total:,}"
-        f'<animate attributeName="opacity" values="0.55;1;0.55" dur="3.2s" repeatCount="indefinite"/>'
-        f"</text>"
-    )
-    s += (
-        f'<text x="24" y="124" font-size="13" fill="{MUT}">total downloads '
-        f"(pypistats retention window)</text>"
-    )
-
-    # right-hand chips
-    chips = [
-        (f"{total30:,}", "last 30 days", TEAL),
-        (f"{peak_val:,}", f"peak day", YELLOW),
-        (f"{len(daily)}", "days tracked", PURPLE),
-    ]
-    for i, (val, label, color) in enumerate(chips):
-        cx = 470 + i * 108
-        s += (
-            f'<g transform="translate({cx},58)">'
-            f'<rect width="96" height="52" rx="10" fill="#0b0f1a" stroke="{BORDER}"/>'
-            f'<text x="12" y="24" font-size="19" font-weight="700" fill="{color}">{val}</text>'
-            f'<text x="12" y="42" font-size="10" fill="{MUT}">{label}</text>'
-            f"</g>"
-        )
-
-    # 60-day bar chart
     x0, x1 = 24, 776
-    y_top, y_base = 152, 228
+    y_top, y_base = 228, 280
     plot_w = x1 - x0
     slot = plot_w / days
-    bar_w = slot * 0.66
-    maxv = max(series) or 1
+    bar_w = slot * 0.62
 
-    s += (
-        f'<line x1="{x0}" y1="{y_base}" x2="{x1}" y2="{y_base}" '
-        f'stroke="{BORDER}" stroke-width="1"/>'
-    )
-    for i, v in enumerate(series):
-        bh = (v / maxv) * (y_base - y_top) if v else 0
-        x = x0 + i * slot
-        y = y_base - bh
-        color = YELLOW if v == maxv and v > 0 else BLUE
+    # npm has no per-day data available (range endpoint 404s), so draw the
+    # pypi daily series across the full width and state that clearly.
+    if pypi_daily:
+        series = [
+            pypi_daily.get((start + timedelta(days=i)).isoformat(), 0)
+            for i in range(days)
+        ]
+        maxv = max(series) or 1
         s += (
-            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" height="{max(bh, 0.6):.1f}" '
-            f'rx="1.5" fill="{color}" opacity="0.9">'
-            f'<animate attributeName="height" from="0" to="{max(bh, 0.6):.1f}" '
-            f'dur="0.7s" begin="{i * 0.012:.3f}s" fill="freeze"/>'
-            f'<animate attributeName="y" from="{y_base}" to="{y:.1f}" '
-            f'dur="0.7s" begin="{i * 0.012:.3f}s" fill="freeze"/>'
-            f"</rect>"
+            f'<line x1="{x0}" y1="{y_base}" x2="{x1}" y2="{y_base}" '
+            f'stroke="{BORDER}" stroke-width="1"/>'
         )
-    s += (
-        f'<text x="{x0}" y="{y_base + 18}" font-size="10" fill="{MUT}">'
-        f"{start.isoformat()}</text>"
-    )
-    s += (
-        f'<text x="{x1}" y="{y_base + 18}" text-anchor="end" font-size="10" fill="{MUT}">'
-        f"today</text>"
-    )
+        for i, v in enumerate(series):
+            bh = (v / maxv) * (y_base - y_top) if v else 0
+            bx = x0 + i * slot
+            by = y_base - bh
+            s += (
+                f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bar_w:.1f}" '
+                f'height="{max(bh, 0.6):.1f}" rx="1.5" fill="#3775A9" opacity="0.92">'
+                f'<animate attributeName="height" from="0" to="{max(bh, 0.6):.1f}" '
+                f'dur="0.7s" begin="{i * 0.011:.3f}s" fill="freeze"/>'
+                f'<animate attributeName="y" from="{y_base}" to="{by:.1f}" '
+                f'dur="0.7s" begin="{i * 0.011:.3f}s" fill="freeze"/>'
+                f"</rect>"
+            )
+        s += (
+            f'<text x="{x0}" y="{y_base + 14}" font-size="10" fill="{MUT}">'
+            f"{start.isoformat()}</text>"
+        )
+        s += (
+            f'<text x="{x1}" y="{y_base + 14}" text-anchor="end" font-size="10" '
+            f'fill="{MUT}">today</text>'
+        )
     s += "</svg>"
     return s
 
@@ -721,7 +806,7 @@ def main():
     write("heatmap.svg", heatmap())
     write("stats.svg", stats_cards())
     write("top-languages.svg", top_langs())
-    write("pypi-downloads.svg", pypi_downloads())
+    write("package-downloads.svg", package_downloads())
     print("done.")
 
 

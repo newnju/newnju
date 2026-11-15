@@ -215,7 +215,7 @@
 
 <div align="center">
 
-![pypi-downloads](assets/pypi-downloads.svg)
+![package-downloads](assets/package-downloads.svg)
 
 [![npm](https://img.shields.io/npm/dm/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20downloads)](https://www.npmjs.com/package/droidseal)
 [![npm total](https://img.shields.io/npm/dt/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20total)](https://www.npmjs.com/package/droidseal)
@@ -225,7 +225,7 @@
 
 <div align="center">
 
-<sub>PyPI no longer exposes download totals in its JSON API (<code>downloads: -1</code>), so the shields.io <code>pypi/dt</code> badge is permanently "404: badge not found". The panel above sums the real per-day figures from pypistats.org instead.</sub>
+<sub><b>How the totals are computed.</b> <b>npm</b>: <code>downloads/point/last-year</code>; the package was first published 2026-08-15, which falls inside that window, so the value is the full lifetime total. <b>PyPI</b>: PyPI's own JSON API reports <code>downloads: -1</code> (stats disabled), so shields.io's <code>pypi/dt</code> badge is permanently "404: badge not found". The figure above sums the per-day counts from pypistats.org, which start exactly at the first upload (2026-08-19), so it is also a full lifetime total. Mirrors are excluded, matching PyPI's official metric — the same one shields.io uses for <code>pypi/dm</code>.</sub>
 
 </div>
 
