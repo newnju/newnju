@@ -295,26 +295,121 @@ def generate_radar_scan():
     generate_svg(svg, "radar-scan.svg")
 
 def generate_terminal():
-    """Generate terminal typing animation"""
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300">
-  <rect width="800" height="300" fill="#1e1e1e" rx="8"/>
-  <rect x="10" y="10" width="780" height="30" fill="#2d2d2d" rx="4"/>
-  <circle cx="25" cy="25" r="8" fill="#ff5f56"/>
-  <circle cx="45" cy="25" r="8" fill="#ffbd2e"/>
-  <circle cx="65" cy="25" r="8" fill="#27c93f"/>
-  
-  <text x="20" y="80" font-family="Courier New" font-size="14" fill="#00ff00">$ whoami</text>
-  <text x="20" y="110" font-family="Courier New" font-size="14" fill="#ffffff">{USERNAME}</text>
-  <text x="20" y="150" font-family="Courier New" font-size="14" fill="#00ff00">$ cat skills.txt</text>
-  <text x="20" y="180" font-family="Courier New" font-size="14" fill="#ff00ff">Python, JavaScript, TypeScript, Rust, Go...</text>
-  <text x="20" y="220" font-family="Courier New" font-size="14" fill="#00ffff">$ ./build_awesome.sh</text>
-  <text x="20" y="250" font-family="Courier New" font-size="14" fill="#ffff00">Building the future...</text>
-  
-  <rect x="20" y="255" width="10" height="20" fill="#00ff00">
-    <animate attributeName="opacity" values="1;0" dur="0.5s" repeatCount="indefinite"/>
-  </rect>
-</svg>'''
-    generate_svg(svg, "terminal.svg")
+    """A terminal window whose lines type themselves in, character by character.
+
+    Pure SMIL: every character is a <tspan> that flips from hidden to visible at
+    its own instant on one shared cycle, and a block cursor walks the text as it
+    appears. No JavaScript, no external font or image host.
+    """
+    import html as _h
+
+    W, H = 800, 300
+    X0 = 24
+    Y0 = 78
+    LINE_H = 27
+    CW = 8.4           # monospace advance at 14px
+    CHAR_DUR = 0.028   # seconds per character
+    HOLD = 3.4         # hold the finished frame before the cycle restarts
+
+    GREEN = "#3fb950"
+    TXT = "#c9d1d9"
+    CYAN = "#36BCF7"
+    MAGENTA = "#bc8cff"
+    YELLOW = "#e3b341"
+    MUT = "#8b949e"
+    RED = "#f85149"
+
+    lines = [
+        ("$ whoami", GREEN),
+        (USERNAME, TXT),
+        ("$ cat stack.txt", GREEN),
+        ("TypeScript / Python / Rust / Go", CYAN),
+        ("$ ./build --release", GREEN),
+        ("✓ compiled in 1.24s · 0 errors", GREEN),
+        ("$ git log --oneline -1", GREEN),
+        ("6f789d5 chore: polish profile", MAGENTA),
+    ]
+
+    total_chars = sum(len(t) for t, _ in lines)
+    T = total_chars * CHAR_DUR + HOLD
+
+    s = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+         f'viewBox="0 0 {W} {H}">']
+
+    # window
+    s.append(f'<rect x="1" y="1" width="{W - 2}" height="{H - 2}" rx="12" '
+             f'fill="#0d1117" stroke="#30363d" stroke-width="1"/>')
+    s.append(f'<path d="M1 13 A12 12 0 0 1 13 1 H{W - 13} A12 12 0 0 1 {W - 1} 13 '
+             f'V42 H1 Z" fill="#161b22"/>')
+    s.append(f'<circle cx="22" cy="21" r="5.5" fill="{RED}"/>')
+    s.append(f'<circle cx="40" cy="21" r="5.5" fill="{YELLOW}"/>')
+    s.append(f'<circle cx="58" cy="21" r="5.5" fill="{GREEN}"/>')
+    s.append(f'<text x="{W / 2}" y="25" text-anchor="middle" font-size="11" fill="{MUT}">'
+             f'{_h.escape(USERNAME)} &#8212; zsh &#183; 80&#215;24</text>')
+    # traffic-light blink so the chrome feels alive
+    s.append(f'<circle cx="22" cy="21" r="5.5" fill="{RED}">'
+             f'<animate attributeName="opacity" values="1;0.45;1" dur="3.6s" repeatCount="indefinite"/></circle>')
+
+    # typed lines + cursor waypoints
+    cur_x, cur_y, cur_t = [], [], []
+    idx = 0
+    EPS = 1e-4
+    for li, (text, color) in enumerate(lines):
+        y = Y0 + li * LINE_H
+        spans = []
+        for ch in text:
+            t = idx * CHAR_DUR
+            # keep keyTimes strictly increasing and > 0, so the very first
+            # character does not produce a degenerate "0;0" keyTimes pair
+            kt = max(t / T, EPS)
+            spans.append(
+                f'<tspan opacity="0">'
+                f'<animate attributeName="opacity" calcMode="discrete" values="0;1" '
+                f'keyTimes="0;{kt:.5f}" dur="{T:.2f}s" repeatCount="indefinite"/>'
+                f'{_h.escape(ch)}</tspan>'
+            )
+            idx += 1
+            cur_x.append(X0 + len(spans) * CW)
+            # rect y is the TOP of the cursor; the text value is a baseline,
+            # so lift it to sit over the glyphs instead of below the line
+            cur_y.append(y - 14)
+            cur_t.append(kt)
+        s.append(f'<text x="{X0}" y="{y}" font-family="Consolas, Courier New, monospace" '
+                 f'font-size="14" fill="{color}">{"".join(spans)}</text>')
+
+    # block cursor trailing the typing; seed it at the start of the first line
+    # so it visibly sits before the first character instead of already past it
+    cur_x.insert(0, X0)
+    cur_y.insert(0, Y0 - 14)
+    cur_t.insert(0, 0.0)
+    xs = ";".join(f"{v:.1f}" for v in cur_x)
+    ys = ";".join(f"{v:.1f}" for v in cur_y)
+    ks = ";".join(f"{v:.5f}" for v in cur_t)
+    s.append(
+        f'<rect width="{CW:.1f}" height="17" fill="{GREEN}" opacity="0.9">'
+        f'<animate attributeName="x" calcMode="discrete" values="{xs}" keyTimes="{ks}" '
+        f'dur="{T:.2f}s" repeatCount="indefinite"/>'
+        f'<animate attributeName="y" calcMode="discrete" values="{ys}" keyTimes="{ks}" '
+        f'dur="{T:.2f}s" repeatCount="indefinite"/>'
+        f'<animate attributeName="opacity" values="0.95;0.15;0.95" dur="1.05s" repeatCount="indefinite"/>'
+        f"</rect>"
+    )
+
+    # CRT scanline drifting down the window
+    s.append(f'<rect x="1" y="42" width="{W - 2}" height="26" fill="#36BCF7" opacity="0.05">'
+             f'<animate attributeName="y" values="42;{H - 30};42" dur="9s" repeatCount="indefinite"/>'
+             f"</rect>")
+
+    # status bar
+    s.append(f'<line x1="1" y1="{H - 30}" x2="{W - 1}" y2="{H - 30}" stroke="#30363d"/>')
+    s.append(f'<circle cx="22" cy="{H - 15}" r="3.5" fill="{GREEN}">'
+             f'<animate attributeName="opacity" values="1;0.25;1" dur="2s" repeatCount="indefinite"/></circle>')
+    s.append(f'<text x="34" y="{H - 11}" font-size="10" fill="{MUT}">main</text>')
+    s.append(f'<text x="{W - 16}" y="{H - 11}" text-anchor="end" font-size="10" fill="{MUT}">'
+             f'utf-8 &#183; ln 8, col 1</text>')
+
+    s.append("</svg>")
+    generate_svg("".join(s), "terminal.svg")
 
 def generate_circuit_board():
     """Generate optimized circuit board pattern with glow effects and data flow"""
