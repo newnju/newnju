@@ -38,6 +38,15 @@ RED = "#f85149"
 ORANGE = "#db6d28"
 PINK = "#f778ba"
 
+# Registry brand hues, expressed with the profile's own palette tokens so the
+# panel sits in the same colour family as every other widget.
+# NOTE: these must carry the leading '#' — a bare "CB3837" is an invalid SVG
+# paint and silently renders BLACK, which is what made the totals unreadable.
+NPM_C = RED      # npm's brand is red; matches the profile's red token
+PYPI_C = BLUE    # PyPI's brand is blue; matches the profile's blue token
+NPM_DEEP = "#B8402F"
+PYPI_DEEP = "#2F6B99"
+
 FONT = "Segoe UI, Helvetica, Arial, sans-serif"
 MONO = "Consolas, Menlo, monospace"
 
@@ -847,6 +856,22 @@ def package_downloads():
     s = open_svg(w, h)
     s += card(w, h)
     s += (
+        "<defs>"
+        '<linearGradient id="pdPyBar" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0" stop-color="{PYPI_C}" stop-opacity="0.95"/>'
+        f'<stop offset="1" stop-color="{PYPI_C}" stop-opacity="0.28"/>'
+        "</linearGradient>"
+        '<linearGradient id="pdNpmChip" x1="0" y1="0" x2="1" y2="0">'
+        f'<stop offset="0" stop-color="{NPM_C}" stop-opacity="0.22"/>'
+        f'<stop offset="1" stop-color="{NPM_C}" stop-opacity="0"/>'
+        "</linearGradient>"
+        '<linearGradient id="pdPyChip" x1="0" y1="0" x2="1" y2="0">'
+        f'<stop offset="0" stop-color="{PYPI_C}" stop-opacity="0.22"/>'
+        f'<stop offset="1" stop-color="{PYPI_C}" stop-opacity="0"/>'
+        "</linearGradient>"
+        "</defs>"
+    )
+    s += (
         f'<text x="24" y="32" font-size="15" font-weight="700" fill="{MUT}">'
         f"&#128230; total downloads &#183; {html.escape(pkg)}</text>"
     )
@@ -858,14 +883,21 @@ def package_downloads():
     )
 
     columns = [
-        ("npm", npm_total, "npm downloads", "CB3837", npm_note, 24),
-        ("pypi", pypi_lifetime, "pypi downloads", "3775A9", pypi_note, 424),
+        ("npm", npm_total, "npm downloads", NPM_C, npm_note, 24, "pdNpmChip"),
+        ("pypi", pypi_lifetime, "pypi downloads", PYPI_C, pypi_note, 424, "pdPyChip"),
     ]
 
-    for label, total, sub, color, note, x in columns:
+    for label, total, sub, color, note, x, chip in columns:
+        # soft accent chip behind each column so the panel reads as two
+        # tinted halves rather than plain text on a flat card
         s += (
-            f'<text x="{x}" y="70" font-size="13" font-weight="700" '
-            f'fill="{color}">{label.upper()}</text>'
+            f'<rect x="{x - 14}" y="46" width="352" height="150" rx="12" '
+            f'fill="url(#{chip})"/>'
+        )
+        s += (
+            f'<circle cx="{x + 5}" cy="{66}" r="3.5" fill="{color}"/>'
+            f'<text x="{x + 16}" y="70" font-size="13" font-weight="700" '
+            f'fill="{color}" letter-spacing="0.6">{label.upper()}</text>'
         )
         if total is None:
             s += (
@@ -877,7 +909,9 @@ def package_downloads():
         s += (
             f'<text x="{x}" y="130" font-size="46" font-weight="700" fill="{color}">'
             f"{total:,}"
-            f'<animate attributeName="opacity" values="0.6;1;0.6" dur="3.4s" repeatCount="indefinite"/>'
+            f'<animate attributeName="opacity" values="0.88;1;0.88" dur="3.4s" '
+            f'calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1" '
+            f'repeatCount="indefinite"/>'
             f"</text>"
         )
         s += (
@@ -904,8 +938,8 @@ def package_downloads():
 
     # ---- combined bar: npm + pypi, each bar scaled to its own max ----
     s += (
-        f'<text x="24" y="216" font-size="11" font-weight="700" fill="{MUT}">'
-        f"last 60 days</text>"
+        f'<text x="24" y="216" font-size="11" font-weight="700" fill="{MUT}" '
+        f'letter-spacing="0.8">DAILY DOWNLOADS &#183; LAST 60 DAYS</text>'
     )
     today = date.today()
     days = 60
@@ -924,30 +958,82 @@ def package_downloads():
             for i in range(days)
         ]
         maxv = max(series) or 1
+
+        # The series is heavily skewed: one day carries 114 while a typical day
+        # carries 2-3. On a linear scale every normal bar collapses to ~2% of
+        # the plot height and the chart reads as empty. A square-root scale
+        # keeps the ranking honest while making the small days visible.
+        def h_of(v):
+            return math.sqrt(max(v, 0) / maxv) * (y_base - y_top)
+
+        # horizontal gridlines with value labels: without these the bars float
+        # with no sense of scale
+        for frac in (0.25, 0.5, 0.75, 1.0):
+            gy = y_base - (y_base - y_top) * frac
+            # invert the sqrt mapping so the label matches the bar height
+            val = int(round(maxv * frac * frac))
+            s += (
+                f'<line x1="{x0}" y1="{gy:.1f}" x2="{x1}" y2="{gy:.1f}" '
+                f'stroke="{BORDER}" stroke-width="0.8" stroke-dasharray="3 5" '
+                f'opacity="0.55"/>'
+            )
+            s += (
+                f'<text x="{x0 - 4}" y="{gy + 3:.1f}" text-anchor="end" '
+                f'font-size="8" fill="{MUT}" opacity="0.75">{val}</text>'
+            )
+        # baseline
         s += (
             f'<line x1="{x0}" y1="{y_base}" x2="{x1}" y2="{y_base}" '
-            f'stroke="{BORDER}" stroke-width="1"/>'
+            f'stroke="{BORDER}" stroke-width="1.2"/>'
         )
+
+        peak = max(range(len(series)), key=lambda i: series[i]) if series else 0
         for i, v in enumerate(series):
-            bh = (v / maxv) * (y_base - y_top) if v else 0
+            bh = h_of(v) if v else 0
             bx = x0 + i * slot
             by = y_base - bh
+            # peak day gets the brighter accent; the rest use the gradient
+            if i == peak and v:
+                fill = PYPI_C
+                op = 1.0
+            else:
+                fill = "url(#pdPyBar)"
+                op = 0.9
             s += (
                 f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bar_w:.1f}" '
-                f'height="{max(bh, 0.6):.1f}" rx="1.5" fill="#3775A9" opacity="0.92">'
-                f'<animate attributeName="height" from="0" to="{max(bh, 0.6):.1f}" '
+                f'height="{max(bh, 0.8):.1f}" rx="1.5" fill="{fill}" opacity="{op}">'
+                f'<animate attributeName="height" from="0" to="{max(bh, 0.8):.1f}" '
                 f'dur="0.7s" begin="{i * 0.011:.3f}s" fill="freeze"/>'
                 f'<animate attributeName="y" from="{y_base}" to="{by:.1f}" '
                 f'dur="0.7s" begin="{i * 0.011:.3f}s" fill="freeze"/>'
                 f"</rect>"
             )
+
+        # highlight the peak with a marker + value
+        if series and series[peak]:
+            px = x0 + peak * slot + bar_w / 2
+            py = y_base - h_of(series[peak])
+            s += (
+                f'<circle cx="{px:.1f}" cy="{py - 7:.1f}" r="2.6" fill="{PYPI_C}">'
+                f'<animate attributeName="opacity" values="0.35;1;0.35" dur="2.2s" '
+                f'repeatCount="indefinite"/></circle>'
+                f'<text x="{px:.1f}" y="{py - 13:.1f}" text-anchor="middle" '
+                f'font-size="9" font-weight="700" fill="{TXT}">{series[peak]}</text>'
+            )
+
         s += (
-            f'<text x="{x0}" y="{y_base + 14}" font-size="10" fill="{MUT}">'
+            f'<text x="{x0}" y="{y_base + 14}" font-size="9" fill="{MUT}">'
             f"{start.isoformat()}</text>"
         )
         s += (
-            f'<text x="{x1}" y="{y_base + 14}" text-anchor="end" font-size="10" '
+            f'<text x="{x1}" y="{y_base + 14}" text-anchor="end" font-size="9" '
             f'fill="{MUT}">today</text>'
+        )
+        # legend, so the single series is not mistaken for a combined total
+        s += (
+            f'<rect x="{x1 - 118}" y="207" width="9" height="9" rx="2" '
+            f'fill="{PYPI_C}"/>'
+            f'<text x="{x1 - 104}" y="215" font-size="9" fill="{MUT}">PyPI / day</text>'
         )
     s += "</svg>"
     return s
