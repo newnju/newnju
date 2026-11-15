@@ -58,7 +58,7 @@ def normalize(path):
 
     out = src[: m.start()] + "<svg" + attrs + ">" + src[m.end():]
     if out != src:
-        path.write_text(out, encoding="utf-8")
+        path.write_text(out, encoding="utf-8", newline="\n")
     return True, f"{w:g}x{h:g} -> {CANONICAL_WIDTH}x{new_h:g}"
 
 

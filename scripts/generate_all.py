@@ -44,7 +44,7 @@ def fetch_user_stats():
 
 def generate_svg(content, filename):
     path = ASSETS_DIR / filename
-    path.write_text(content, encoding="utf-8")
+    path.write_text(content, encoding="utf-8", newline="\n")
     print(f"Generated: {path}")
 
 # ==================== EXISTING FUNCTIONS ====================

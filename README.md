@@ -215,10 +215,17 @@
 
 <div align="center">
 
+![pypi-downloads](assets/pypi-downloads.svg)
+
 [![npm](https://img.shields.io/npm/dm/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20downloads)](https://www.npmjs.com/package/droidseal)
 [![npm total](https://img.shields.io/npm/dt/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20total)](https://www.npmjs.com/package/droidseal)
 [![pyPI](https://img.shields.io/pypi/dm/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20monthly)](https://pypi.org/project/droidseal/)
-[![pyPI version](https://img.shields.io/pypi/v/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20version)](https://pypi.org/project/droidseal/)
+
+</div>
+
+<div align="center">
+
+<sub>PyPI no longer exposes download totals in its JSON API (<code>downloads: -1</code>), so the shields.io <code>pypi/dt</code> badge is permanently "404: badge not found". The panel above sums the real per-day figures from pypistats.org instead.</sub>
 
 </div>
 
