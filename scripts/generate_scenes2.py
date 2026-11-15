@@ -920,9 +920,10 @@ def daynight():
 
 def main():
     print("generating second-batch scenes:")
-    save("coffee.svg", coffee())
+    # coffee and octocat are intentionally NOT written here: they were
+    # redesigned in generate_polish.py, which runs later in the pipeline and
+    # owns those two files.
     save("pacman.svg", pacman())
-    save("octocat.svg", octocat())
     save("daynight.svg", daynight())
     print("done.")
 

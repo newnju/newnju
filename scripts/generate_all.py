@@ -717,6 +717,10 @@ def main():
     import generate_scenes2
     generate_scenes2.main()
 
+    print("Applying polish pass (coffee, octocat, and ratio fixes)...")
+    import generate_polish
+    generate_polish.main()
+
     print("Normalizing every asset to one canonical width...")
     import normalize_widths
     normalize_widths.main()

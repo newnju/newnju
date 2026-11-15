@@ -16,18 +16,6 @@
 
 ---
 
-## 📡 Live Activity
-
-<div align="center">
-
-![spotlight](assets/spotlight.svg)
-
-![ticker](assets/ticker.svg)
-
-</div>
-
----
-
 ## 📊 Stats & Composition
 
 <div align="center">
@@ -36,15 +24,7 @@
 
 ![top-languages](assets/top-languages.svg)
 
-</div>
-
-<div align="center">
-
 ![skill-radar](assets/skill-radar.svg)
-
-</div>
-
-<div align="center">
 
 ![heatmap](assets/heatmap.svg)
 
@@ -70,106 +50,66 @@
 
 ![radar](assets/radar-scan.svg)
 
+![spotlight](assets/spotlight.svg)
+
+![ticker](assets/ticker.svg)
+
 </div>
 
 ---
 
-## 🎨 More Animations
+## 🎨 Animations
 
-<details>
-<summary><b>🖥️ Terminal · Neofetch · Code Window</b></summary>
-
-<div align="center">
-
-![terminal](assets/terminal.svg)
-
-![neofetch](assets/neofetch.svg)
-
-![codewindow](assets/codewindow.svg)
-
-</div>
-
-</details>
-
-<details>
-<summary><b>🌐 Globe · Particles · Circuit Board · Neural Net</b></summary>
-
-<div align="center">
-
-![globe](assets/globe.svg)
-
-![particles](assets/particles.svg)
-
-![circuit](assets/circuit-board.svg)
-
-![neural](assets/neural-network.svg)
-
-</div>
-
-</details>
-
-<details>
-<summary><b>🌧️ Matrix · Fireworks · Conway · DNA</b></summary>
-
-<div align="center">
-
-![matrix](assets/matrix-rain.svg)
-
-![fireworks](assets/fireworks.svg)
-
-![conway](assets/conway.svg)
-
-![dna](assets/dna.svg)
-
-</div>
-
-</details>
-
-<details>
-<summary><b>🚀 Rocket · Solar · Atom · Radar · Moon</b></summary>
+<table>
+<tr>
+<td align="center" width="400"><img src="assets/terminal.svg" width="400" alt="terminal typing"></td>
+<td align="center" width="400"><img src="assets/matrix-rain.svg" width="400" alt="matrix rain"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/particles.svg" width="400" alt="particle field"></td>
+<td align="center" width="400"><img src="assets/fireworks.svg" width="400" alt="fireworks"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/globe.svg" width="400" alt="globe"></td>
+<td align="center" width="400"><img src="assets/conway.svg" width="400" alt="game of life"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/dna.svg" width="400" alt="dna helix"></td>
+<td align="center" width="400"><img src="assets/solar.svg" width="400" alt="solar system"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/atom.svg" width="400" alt="atom"></td>
+<td align="center" width="400"><img src="assets/radar.svg" width="400" alt="radar"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/moon.svg" width="400" alt="moon phases"></td>
+<td align="center" width="400"><img src="assets/coffee.svg" width="400" alt="espresso"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/pacman.svg" width="400" alt="pacman maze"></td>
+<td align="center" width="400"><img src="assets/octocat.svg" width="400" alt="octocat"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/matrix.svg" width="400" alt="matrix"></td>
+<td align="center" width="400"><img src="assets/daynight.svg" width="400" alt="day night cycle"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/neofetch.svg" width="400" alt="neofetch"></td>
+<td align="center" width="400"><img src="assets/neural-network.svg" width="400" alt="neural network"></td>
+</tr>
+<tr>
+<td align="center" width="400"><img src="assets/music.svg" width="400" alt="now playing"></td>
+<td align="center" width="400"><img src="assets/joke.svg" width="400" alt="joke"></td>
+</tr>
+</table>
 
 <div align="center">
 
 ![rocket](assets/rocket.svg)
 
-![solar](assets/solar.svg)
+![codewindow](assets/codewindow.svg)
 
-![atom](assets/atom.svg)
-
-![radar-small](assets/radar.svg)
-
-![moon](assets/moon.svg)
-
-</div>
-
-</details>
-
-<details>
-<summary><b>🎵 Music · Coffee · Pac-Man · Octocat · Day/Night</b></summary>
-
-<div align="center">
-
-![music](assets/music.svg)
-
-![coffee](assets/coffee.svg)
-
-![pacman](assets/pacman.svg)
-
-![octocat](assets/octocat.svg)
-
-![daynight](assets/daynight.svg)
-
-</div>
-
-</details>
-
----
-
-## 💬 Fun Corner
-
-<div align="center">
-
-![joke](assets/joke.svg)
+![circuit-board](assets/circuit-board.svg)
 
 ![quote](assets/quote.svg)
 
