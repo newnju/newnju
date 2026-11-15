@@ -165,20 +165,6 @@
 
 ---
 
-## 🧩 Toolkit
-
-<div align="center">
-
-![techstack](assets/techstack.svg)
-
-![metrics](assets/metrics.svg)
-
-![bento](assets/bento.svg)
-
-</div>
-
----
-
 ## 💬 Fun Corner
 
 <div align="center">
