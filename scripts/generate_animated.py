@@ -382,86 +382,196 @@ def spotlight():
 # --------------------------------------------------------------------------
 # 6. contribution heatmap - 26 weeks of real activity
 # --------------------------------------------------------------------------
-def heatmap():
-    """Compact contribution heatmap driven by the public events API."""
-    import requests
+def _token():
+    """Resolve a GitHub token: env first, then the local git credential store.
 
-    weeks, days = 26, 7
-    cell, gap = 13, 3
-    step = cell + gap
-    w = weeks * step + 70
-    h = days * step + 64
-
-    counts = {}
+    GitHub's GraphQL API rejects unauthenticated requests, so unlike the REST
+    helpers this genuinely needs a token. In GitHub Actions GITHUB_TOKEN is
+    already exported; locally we fall back to whatever `git credential fill`
+    returns for github.com.
+    """
+    tok = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+    if tok:
+        return tok
     try:
-        for page in (1, 2, 3):
-            r = requests.get(
-                f"https://api.github.com/users/{USERNAME}/events/public?per_page=100&page={page}",
-                timeout=30,
-                headers={"Accept": "application/vnd.github+json"},
-            )
-            if r.status_code != 200:
-                break
-            events = r.json()
-            if not events:
-                break
-            for ev in events:
-                ts = ev.get("created_at")
-                if not ts:
-                    continue
-                day = ts[:10]
-                counts[day] = counts.get(day, 0) + 1
+        import subprocess
+
+        out = subprocess.run(
+            ["git", "credential", "fill"],
+            input="protocol=https\nhost=github.com\n\n",
+            capture_output=True, text=True, timeout=20,
+        ).stdout
+        for line in out.splitlines():
+            if line.startswith("password="):
+                return line.split("=", 1)[1]
     except Exception:
         pass
+    return None
 
-    # build a date grid ending today
+
+def _graphql(query):
+    """POST a GraphQL query, tolerating network/auth failure."""
+    import requests
+
+    token = _token()
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        r = requests.post(
+            "https://api.github.com/graphql",
+            headers=headers,
+            json={"query": query},
+            timeout=40,
+        )
+        if r.status_code == 200:
+            body = r.json()
+            if not body.get("errors"):
+                return body.get("data")
+    except Exception:
+        pass
+    return None
+
+
+def heatmap():
+    """GitHub-style contribution heatmap (53 weeks) from real contribution data.
+
+    The public events API only covers ~90 days and counts *events*, not
+    contributions, so it produced a sparse, misleading grid. The GraphQL
+    contributionsCollection returns the same calendar GitHub itself renders:
+    a full 53-week year with per-day contributionCount.
+    """
     from datetime import date, timedelta
 
-    today = date.today()
-    start = today - timedelta(weeks=weeks - 1)
-    start = start - timedelta(days=start.weekday())
+    counts = {}
+    total = 0
 
-    s = open_svg(w, h)
-    s += card(w, h)
-    s += (
-        f'<text x="22" y="30" font-size="14" font-weight="700" fill="{MUT}">'
-        f"&#128202; last {weeks} weeks</text>"
+    data = _graphql(
+        """
+        query {
+          user(login: "%s") {
+            contributionsCollection {
+              contributionCalendar {
+                totalContributions
+                weeks {
+                  contributionDays { date contributionCount }
+                }
+              }
+            }
+          }
+        }
+        """
+        % USERNAME
     )
+    cal = ((data or {}).get("user") or {}).get("contributionsCollection", {}).get(
+        "contributionCalendar"
+    ) or {}
+
+    weeks_data = cal.get("weeks") or []
+    for wk in weeks_data:
+        for day in wk.get("contributionDays", []):
+            counts[day["date"]] = day.get("contributionCount", 0)
+    total = cal.get("totalContributions") or sum(counts.values())
+
+    # Fallback: synthesise a 53-week grid of empty days so the widget keeps a
+    # sane fixed size instead of collapsing to a 1-column sliver (which would
+    # make `step` enormous and blow the canvas up to thousands of px tall).
+    if not weeks_data:
+        from datetime import date as _d, timedelta as _td
+
+        today = _d.today()
+        start = today - _td(weeks=52)
+        start = start - _td(days=start.weekday())
+        weeks_data = [
+            {
+                "contributionDays": [
+                    {
+                        "date": (start + _td(weeks=w, days=dd)).isoformat(),
+                        "contributionCount": 0,
+                    }
+                    for dd in range(7)
+                    if (start + _td(weeks=w, days=dd)) <= today
+                ]
+            }
+            for w in range(53)
+        ]
+        counts = {}
+        total = 0
+
+    # ---- geometry: size the grid to a fixed 800px width ----
+    left_gutter = 34
+    right_pad = 6
+    weeks = max(len(weeks_data), 1)
+    avail = 800 - left_gutter - right_pad
+    step = avail / weeks
+    cell = max(6.0, step - 3)
+    top = 56
+    row_step = step
+    grid_h = 7 * row_step
+    h = int(top + grid_h + 40)
+
+    s = open_svg(800, h)
+    s += card(800, h)
+    s += (
+        f'<text x="16" y="24" font-size="12" font-weight="700" fill="{MUT}">'
+        f"{total:,} contributions in the last year</text>"
+    )
+
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     last_month = -1
-    for wk in range(weeks):
-        col_x = 70 + wk * step
-        d = start + timedelta(weeks=wk)
-        if d.month != last_month:
+
+    def level_color(n):
+        if n <= 0:
+            return "#161b22"
+        if n <= 2:
+            return "#0e4429"
+        if n <= 5:
+            return "#006d32"
+        if n <= 9:
+            return "#26a641"
+        return "#39d353"
+
+    for wi, wk in enumerate(weeks_data):
+        days = wk.get("contributionDays", [])
+        if not days:
+            continue
+        col_x = left_gutter + wi * step
+        first = date.fromisoformat(days[0]["date"])
+        if first.month != last_month:
             s += (
-                f'<text x="{col_x}" y="48" font-size="10" fill="{MUT}">'
-                f"{month_names[d.month - 1]}</text>"
+                f'<text x="{col_x:.1f}" y="45" font-size="9" fill="{MUT}">'
+                f"{month_names[first.month - 1]}</text>"
             )
-            last_month = d.month
-        for dow in range(days):
-            day = d + timedelta(days=dow)
-            if day > today:
-                continue
-            key = day.isoformat()
-            n = counts.get(key, 0)
-            if n >= 6:
-                col = GREEN
-            elif n >= 3:
-                col = "#238636"
-            elif n >= 1:
-                col = "#196c2e"
-            else:
-                col = "#161b22"
-            y = 58 + dow * step
+            last_month = first.month
+        for di, day in enumerate(days):
+            n = day.get("contributionCount", 0)
+            y = top + di * row_step
             s += (
-                f'<rect x="{col_x}" y="{y}" width="{cell}" height="{cell}" rx="3" '
-                f'fill="{col}" stroke="{BORDER}" stroke-width="0.5"/>'
+                f'<rect x="{col_x:.1f}" y="{y:.1f}" width="{cell:.1f}" '
+                f'height="{cell:.1f}" rx="2" fill="{level_color(n)}">'
+                f"<title>{day['date']}: {n} contribution"
+                f"{'' if n == 1 else 's'}</title>"
+                f"</rect>"
             )
+
+    # legend
+    lx = 800 - 16 - (5 * 12 + 46)
+    ly = h - 16
     s += (
-        f'<text x="22" y="{h - 22}" font-size="11" fill="{MUT}">'
-        f"{sum(counts.values())} public events</text>"
+        f'<text x="{lx - 8:.1f}" y="{ly + 8}" text-anchor="end" '
+        f'font-size="9" fill="{MUT}">Less</text>'
     )
+    for i in range(5):
+        s += (
+            f'<rect x="{lx + i * 12:.1f}" y="{ly}" width="9" height="9" rx="2" '
+            f'fill="{level_color([0, 1, 3, 6, 10][i])}"/>'
+        )
+    s += (
+        f'<text x="{lx + 5 * 12 + 4:.1f}" y="{ly + 8}" font-size="9" '
+        f'fill="{MUT}">More</text>'
+    )
+
     s += "</svg>"
     return s
 
@@ -470,8 +580,8 @@ def _api(path):
     """Fetch JSON from the GitHub API, tolerating network failure."""
     import requests
 
-    token = os.getenv("GITHUB_TOKEN")
     headers = {"Accept": "application/vnd.github+json"}
+    token = _token()
     if token:
         headers["Authorization"] = f"Bearer {token}"
     try:
@@ -497,7 +607,15 @@ def _own_repos():
 
 
 def stats_cards():
-    """Live account statistics as animated cards."""
+    """Live account statistics as animated cards.
+
+    Layout note: a child <animateTransform attributeName="transform"> *replaces*
+    its element's transform attribute rather than composing with it. The
+    previous version put the bob animation directly on the positioned <g>, so
+    every card was yanked back to translate(0,0) and all six stacked on the
+    same spot. The position now lives on an outer <g> and only an inner <g>
+    animates.
+    """
     profile = _api(f"/users/{USERNAME}") or {}
     repos = _own_repos()
     stars = sum(r.get("stargazers_count", 0) for r in repos)
@@ -513,36 +631,74 @@ def stats_cards():
             years = 0
 
     cells = [
-        ("Repos", len(repos), CYAN),
-        ("Stars", stars, YELLOW),
-        ("Forks", forks, PURPLE),
-        ("Followers", profile.get("followers", 0), GREEN),
-        ("Following", profile.get("following", 0), TEAL),
-        ("Years", years, ORANGE),
+        ("Repos", len(repos), CYAN, "&#128194;"),
+        ("Stars", stars, YELLOW, "&#11088;"),
+        ("Forks", forks, PURPLE, "&#127860;"),
+        ("Followers", profile.get("followers", 0), GREEN, "&#128101;"),
+        ("Following", profile.get("following", 0), TEAL, "&#128100;"),
+        ("Years", years, ORANGE, "&#128197;"),
     ]
-    w, h = 800, 220
-    cw, ch, gap = 240, 84, 20
+
+    w, h = 800, 230
+    pad = 24
+    gap_x, gap_y = 16, 14
+    cw = (w - 2 * pad - 2 * gap_x) // 3
+    ch = 73
+    top = 50
+
     s = open_svg(w, h)
     s += card(w, h)
     s += (
-        f'<text x="24" y="34" font-size="15" font-weight="700" fill="{MUT}">'
+        f'<text x="{pad}" y="32" font-size="15" font-weight="700" fill="{MUT}">'
         f"&#128200; account stats</text>"
     )
-    for i, (label, value, color) in enumerate(cells):
+    s += (
+        f'<text x="{w - pad}" y="32" text-anchor="end" font-size="11" '
+        f'fill="{MUT}">@{html.escape(USERNAME)}</text>'
+    )
+
+    for i, (label, value, color, icon) in enumerate(cells):
         col = i % 3
         row = i // 3
-        x = 24 + col * (cw + gap)
-        y = 52 + row * (ch + 16)
+        x = pad + col * (cw + gap_x)
+        y = top + row * (ch + gap_y)
+
+        # outer g = fixed position (never animated)
+        s += f'<g transform="translate({x},{y})">'
         s += (
-            f'<g transform="translate({x},{y})">'
-            f'<rect width="{cw}" height="{ch}" rx="12" fill="#0b0f1a" stroke="{BORDER}"/>'
-            f'<rect x="0" y="0" width="4" height="{ch}" rx="2" fill="{color}"/>'
-            f'<text x="18" y="38" font-size="30" font-weight="700" fill="{color}">{value}</text>'
-            f'<text x="18" y="64" font-size="12" fill="{MUT}">{label}</text>'
-            f'<animateTransform attributeName="transform" type="translate" '
-            f'values="0 0;0 -4;0 0" dur="3s" begin="{i * 0.18}s" repeatCount="indefinite"/>'
-            "</g>"
+            f'<rect width="{cw}" height="{ch}" rx="12" fill="#0b0f1a" '
+            f'stroke="{BORDER}"/>'
         )
+        # colour accent on the left edge
+        s += f'<rect x="0" y="10" width="3" height="{ch - 20}" rx="1.5" fill="{color}"/>'
+
+        # inner g = the only thing that animates
+        s += (
+            f'<g>'
+            f'<animateTransform attributeName="transform" type="translate" '
+            f'values="0 0;0 -3;0 0" dur="3.6s" begin="{i * 0.15:.2f}s" '
+            f'repeatCount="indefinite"/>'
+        )
+        s += (
+            f'<text x="16" y="24" font-size="11" fill="{MUT}">{icon} {label}</text>'
+        )
+        # count-up feel: digits fade/slide in once, then hold
+        s += (
+            f'<text x="16" y="58" font-size="27" font-weight="700" fill="{color}">'
+            f"{value:,}"
+            f'<animate attributeName="opacity" values="0;1" dur="0.5s" '
+            f'begin="{0.1 + i * 0.08:.2f}s" fill="freeze"/>'
+            f"</text>"
+        )
+        # pulsing status dot, top-right of the card
+        s += (
+            f'<circle cx="{cw - 16}" cy="18" r="3" fill="{color}">'
+            f'<animate attributeName="opacity" values="1;0.25;1" dur="2.4s" '
+            f'begin="{i * 0.2:.2f}s" repeatCount="indefinite"/>'
+            f"</circle>"
+        )
+        s += "</g></g>"
+
     s += "</svg>"
     return s
 

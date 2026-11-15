@@ -74,26 +74,6 @@
 
 ---
 
-## 🛠️ Tech Timeline
-
-<div align="center">
-
-![timeline](assets/timeline.svg)
-
-</div>
-
----
-
-## 💻 Two Computers, One Passion
-
-<div align="center">
-
-![two-pcs](assets/two-pcs.svg)
-
-</div>
-
----
-
 ## 🎨 More Animations
 
 <details>

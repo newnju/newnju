@@ -602,7 +602,6 @@ def main():
 
     print("Generating new animation assets...")
     generate_radar_scan()
-    generate_timeline()
     generate_terminal()
     generate_circuit_board()
     generate_particles()
