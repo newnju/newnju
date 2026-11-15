@@ -709,6 +709,10 @@ def main():
     import generate_rich
     generate_rich.main()
 
+    print("Generating scene widgets...")
+    import generate_scenes
+    generate_scenes.main()
+
     print("Normalizing every asset to one canonical width...")
     import normalize_widths
     normalize_widths.main()
