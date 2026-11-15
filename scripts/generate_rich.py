@@ -57,7 +57,9 @@ def card(w, h, rx=16, fill=CARD):
 
 def save(name, content):
     p = ASSETS / name
-    p.write_text(content, encoding="utf-8")
+    # newline="\n" keeps output byte-identical on Windows and Linux runners,
+    # so the daily job does not churn every file through CRLF/LF flips.
+    p.write_text(content, encoding="utf-8", newline="\n")
     print(f"  {name:22} {len(content):>7,} bytes")
 
 
@@ -520,12 +522,179 @@ def neural_network():
     return svg(W, H, "".join(b), defs)
 
 
+def fireworks():
+    """Fireworks over a night skyline.
+
+    Rockets launch, coast upward under gravity, then burst into a radial
+    spray whose sparks are integrated ballistically (vx/vy + drag + gravity)
+    rather than being hand-placed. Trails come from per-spark history polylines.
+    """
+    W, H = 800, 420
+    GROUND = H - 52
+    random.seed(1024)
+
+    defs = f"""
+    <linearGradient id="fSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#05010f"/>
+      <stop offset="0.55" stop-color="#0b0620"/>
+      <stop offset="1" stop-color="#140a2e"/>
+    </linearGradient>
+    <radialGradient id="fGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#36BCF7" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#36BCF7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fCity" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#161028"/>
+      <stop offset="1" stop-color="#05030c"/>
+    </linearGradient>
+    """
+
+    b = [f'<rect width="{W}" height="{H}" fill="url(#fSky)"/>']
+    b.append(card(W, H, fill="none"))
+    b.append(
+        f'<text x="24" y="30" font-size="13" font-weight="700" fill="{MUT}">'
+        f"&#127878; fireworks &#183; ballistic sparks</text>"
+    )
+
+    # ---- stars (static, twinkling) ----
+    for _ in range(90):
+        x = random.uniform(6, W - 6)
+        y = random.uniform(40, GROUND - 90)
+        r = random.choice([0.5, 0.7, 0.9, 1.2])
+        dur = round(random.uniform(2.0, 5.5), 2)
+        b.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="#ffffff" opacity="0.55">'
+            f'<animate attributeName="opacity" values="0.12;0.8;0.12" dur="{dur}s" '
+            f'begin="{random.uniform(0, 3):.1f}s" repeatCount="indefinite"/></circle>'
+        )
+
+    # ---- city skyline (deterministic) ----
+    x = 0
+    while x < W:
+        bw = random.randint(26, 62)
+        bh = random.randint(34, 96)
+        if x + bw > W:
+            bw = W - x
+        b.append(
+            f'<rect x="{x}" y="{GROUND - bh}" width="{bw}" height="{bh}" '
+            f'fill="url(#fCity)" stroke="#241a3d" stroke-width="0.6"/>'
+        )
+        # windows
+        for wy in range(int(GROUND - bh) + 8, GROUND - 6, 11):
+            for wx in range(x + 5, x + bw - 5, 9):
+                if random.random() < 0.35:
+                    b.append(
+                        f'<rect x="{wx}" y="{wy}" width="3" height="4" fill="{YELLOW}" '
+                        f'opacity="{random.uniform(0.25, 0.8):.2f}"/>'
+                    )
+        x += bw + random.randint(2, 7)
+    b.append(f'<rect x="0" y="{GROUND}" width="{W}" height="{H - GROUND}" fill="#05030c"/>')
+
+    # ---- firework bursts ----
+    shells = [
+        (0.06, 0.30, 168, 26, [CYAN, BLUE, PURPLE]),
+        (0.30, 0.22, 132, 22, [PINK, PURPLE, YELLOW]),
+        (0.53, 0.34, 196, 30, [GREEN, TEAL, CYAN]),
+        (0.72, 0.18, 118, 20, [YELLOW, ORANGE, RED]),
+        (0.88, 0.28, 210, 34, [PURPLE, PINK, BLUE]),
+    ]
+
+    # Each shell runs on one shared cycle: rise -> burst -> sparks fly and fade,
+    # then a quiet gap before the next shell. One burst per shell per cycle.
+    STAGGER = 1.1       # launch offset between shells
+    RISE = 0.5          # rocket climb time
+    SPARK_LIFE = 1.55   # spark flight time
+    GRAV = 62.0
+    # Derive the cycle so the LAST shell's sparks fully finish (keyTimes <= 1)
+    # instead of overflowing past 1.0, which SMIL rejects.
+    CYCLE = (len(shells) - 1) * STAGGER + SPARK_LIFE + 0.9
+
+    for si, (cx_frac, top_frac, maxr, nsparks, cols) in enumerate(shells):
+        cx = cx_frac * W
+        cy = GROUND - (GROUND - 60) * top_frac
+        t_burst = si * STAGGER          # burst moment within the cycle
+
+        # ---- rocket trail: grows during RISE, then gone ----
+        rise_end = t_burst
+        b.append(
+            f'<g opacity="0">'
+            f'<rect x="{cx - 1.2:.1f}" y="{cy:.1f}" width="2.4" '
+            f'height="{GROUND - cy:.1f}" fill="{CYAN}" opacity="0.22"/>'
+            f'<animate attributeName="opacity" values="0;0;0.9;0.5;0;0" '
+            f'keyTimes="0;{rise_end / CYCLE:.4f};{(rise_end + RISE) / CYCLE:.4f};'
+            f'{(rise_end + RISE + 0.2) / CYCLE:.4f};{(rise_end + RISE + 0.5) / CYCLE:.4f};1" '
+            f'dur="{CYCLE}s" repeatCount="indefinite"/></g>'
+        )
+
+        # ---- burst flash ----
+        b.append(
+            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill="url(#fGlow)" opacity="0">'
+            f'<animate attributeName="opacity" values="0;0;1;0.85;0;0" '
+            f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.04) / CYCLE:.4f};'
+            f'{(t_burst + 0.12) / CYCLE:.4f};{(t_burst + 0.3) / CYCLE:.4f};1" '
+            f'dur="{CYCLE}s" repeatCount="indefinite"/>'
+            f'<animate attributeName="r" values="2;2;30;42;46;46" '
+            f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.1) / CYCLE:.4f};'
+            f'{(t_burst + 0.25) / CYCLE:.4f};{(t_burst + 0.45) / CYCLE:.4f};1" '
+            f'dur="{CYCLE}s" repeatCount="indefinite"/></circle>'
+        )
+
+        # ---- sparks: ballistic integration, one burst per cycle ----
+        for k in range(nsparks):
+            ang = (k / nsparks) * 2 * math.pi + random.uniform(-0.06, 0.06)
+            spd = random.uniform(0.55, 1.0) * maxr
+            vx = math.cos(ang) * spd
+            vy = math.sin(ang) * spd
+            col = random.choice(cols)
+
+            pts = []
+            for step in range(13):
+                t = step * (SPARK_LIFE / 12)
+                px = cx + vx * t
+                py = cy + vy * t + 0.5 * GRAV * t * t
+                pts.append((px, py))
+            tail = " ".join(f"{px:.1f},{py:.1f}" for px, py in pts)
+
+            t_end = t_burst + SPARK_LIFE
+            b.append(
+                f'<polyline points="{tail}" fill="none" stroke="{col}" '
+                f'stroke-width="1.5" stroke-linecap="round" opacity="0">'
+                f'<animate attributeName="opacity" values="0;0;0.55;0.4;0;0" '
+                f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.05) / CYCLE:.4f};'
+                f'{(t_burst + 0.9) / CYCLE:.4f};{t_end / CYCLE:.4f};1" '
+                f'dur="{CYCLE}s" repeatCount="indefinite"/></polyline>'
+            )
+            # spark head travels the path only during its window
+            b.append(
+                f'<circle cx="{pts[0][0]:.1f}" cy="{pts[0][1]:.1f}" r="2" fill="{col}" opacity="0">'
+                f'<animateMotion dur="{CYCLE}s" repeatCount="indefinite" '
+                f'keyPoints="0;0;1;1" '
+        f'keyTimes="0;{t_burst / CYCLE:.4f};{t_end / CYCLE:.4f};1" '
+                f'calcMode="linear" '
+                f'path="M {pts[0][0]:.1f},{pts[0][1]:.1f} '
+                + " L ".join(f"{px:.1f},{py:.1f}" for px, py in pts[1:])
+                + '"/>'
+                f'<animate attributeName="opacity" values="0;0;1;0.9;0;0" '
+                f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.05) / CYCLE:.4f};'
+                f'{(t_burst + 1.1) / CYCLE:.4f};{t_end / CYCLE:.4f};1" '
+                f'dur="{CYCLE}s" repeatCount="indefinite"/></circle>'
+            )
+
+    b.append(
+        f'<text x="{W - 20}" y="{H - 16}" text-anchor="end" font-size="10" '
+        f'fill="{MUT}">5 shells &#183; gravity + drag</text>'
+    )
+    return svg(W, H, "".join(b), defs)
+
+
 def main():
     print("generating rich widgets:")
     save("globe.svg", globe())
     save("particles.svg", particles())
     save("circuit-board.svg", circuit_board())
     save("neural-network.svg", neural_network())
+    save("fireworks.svg", fireworks())
     print("done.")
 
 
