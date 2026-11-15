@@ -705,6 +705,10 @@ def main():
     import generate_animated
     generate_animated.main()
 
+    print("Generating rich animated widgets...")
+    import generate_rich
+    generate_rich.main()
+
     print("Normalizing every asset to one canonical width...")
     import normalize_widths
     normalize_widths.main()
