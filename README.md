@@ -1,11 +1,5 @@
 <div align="center">
 
-![aurora](assets/aurora.svg)
-
-# 👋 Hi, I'm **newnju**
-
-**Full-Stack Developer · Open Source Enthusiast · AI/ML Explorer**
-
 [![typing](assets/typing.svg)](https://github.com/newnju)
 
 [![profile views](https://komarev.com/ghpvc/?username=newnju&color=0078D4&style=flat-square&label=Profile+Views)](https://github.com/newnju)
