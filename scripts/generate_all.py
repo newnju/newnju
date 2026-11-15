@@ -713,6 +713,10 @@ def main():
     import generate_scenes
     generate_scenes.main()
 
+    print("Generating second-batch scene widgets...")
+    import generate_scenes2
+    generate_scenes2.main()
+
     print("Normalizing every asset to one canonical width...")
     import normalize_widths
     normalize_widths.main()
