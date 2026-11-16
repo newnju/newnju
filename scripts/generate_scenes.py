@@ -1190,7 +1190,8 @@ def main():
     save("rocket.svg", rocket())
     save("solar.svg", solar())
     save("atom.svg", atom())
-    save("radar.svg", radar())
+    # radar.svg is intentionally not written: the user removed it from the
+    # README, and leaving the generator wired would resurrect the asset.
     save("moon.svg", moon())
     print("done.")
 

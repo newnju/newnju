@@ -65,15 +65,11 @@
 </tr>
 <tr>
 <td align="center" width="400"><img src="assets/globe.svg" width="400" alt="globe"></td>
-<td align="center" width="400"><img src="assets/conway.svg" width="400" alt="game of life"></td>
-</tr>
-<tr>
 <td align="center" width="400"><img src="assets/dna.svg" width="400" alt="dna helix"></td>
-<td align="center" width="400"><img src="assets/solar.svg" width="400" alt="solar system"></td>
 </tr>
 <tr>
+<td align="center" width="400"><img src="assets/solar.svg" width="400" alt="solar system"></td>
 <td align="center" width="400"><img src="assets/atom.svg" width="400" alt="atom"></td>
-<td align="center" width="400"><img src="assets/radar.svg" width="400" alt="radar"></td>
 </tr>
 <tr>
 <td align="center" width="400"><img src="assets/moon.svg" width="400" alt="moon phases"></td>
@@ -118,12 +114,6 @@
 [![npm](https://img.shields.io/npm/dm/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20downloads)](https://www.npmjs.com/package/droidseal)
 [![npm total](https://img.shields.io/npm/dt/droidseal?style=flat-square&color=CB3837&logo=npm&logoColor=white&label=npm%20total)](https://www.npmjs.com/package/droidseal)
 [![pyPI](https://img.shields.io/pypi/dm/droidseal?style=flat-square&color=3775A9&logo=pypi&logoColor=white&label=pypi%20monthly)](https://pypi.org/project/droidseal/)
-
-</div>
-
-<div align="center">
-
-<sub><b>How the totals are computed.</b> <b>npm</b>: <code>downloads/point/last-year</code>; the package was first published 2026-08-15, which falls inside that window, so the value is the full lifetime total. <b>PyPI</b>: PyPI's own JSON API reports <code>downloads: -1</code> (stats disabled), so shields.io's <code>pypi/dt</code> badge is permanently "404: badge not found". The figure above sums the per-day counts from pypistats.org, which start exactly at the first upload (2026-08-19), so it is also a full lifetime total. Mirrors are excluded, matching PyPI's official metric — the same one shields.io uses for <code>pypi/dm</code>.</sub>
 
 </div>
 

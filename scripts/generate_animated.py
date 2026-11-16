@@ -1027,8 +1027,12 @@ def package_downloads():
     except Exception:
         pypi_lifetime = None
 
-    # ---- render ----
-    w, h = 800, 300
+    # ---- render ----------------------------------------------------------
+    # The two totals are the point of this panel, so each gets a proper
+    # readout: the number, its share of the combined total, a 7-day trend
+    # delta where per-day data exists, and a mini share bar. The combined
+    # figure sits in the header so the panel answers "how much in total" first.
+    w, h = 800, 372
     s = open_svg(w, h)
     s += card(w, h)
     s += (
@@ -1047,81 +1051,148 @@ def package_downloads():
         "</linearGradient>"
         "</defs>"
     )
+    # ---- header with the combined total ----------------------------------
+    known = [v for v in (npm_total, pypi_lifetime) if v]
+    combined = sum(known) if len(known) == 2 else None
+
     s += (
-        f'<text x="24" y="32" font-size="15" font-weight="700" fill="{MUT}">'
-        f"&#128230; total downloads &#183; {html.escape(pkg)}</text>"
+        f'<text x="24" y="32" font-size="15" font-weight="700" fill="{TXT}" '
+        f'letter-spacing="0.3">&#128230; total downloads</text>'
     )
+    s += (
+        f'<text x="{24 + 152:.0f}" y="32" font-size="10.5" fill="{MUT}" '
+        f'font-family="{MONO}">&#183; {html.escape(pkg)}</text>'
+    )
+    if combined is not None:
+        s += (
+            f'<text x="{w - 24}" y="32" text-anchor="end" font-size="10.5" '
+            f'fill="{MUT}">combined</text>'
+            f'<text x="{w - 24}" y="52" text-anchor="end" font-size="20" '
+            f'font-weight="700" fill="{TXT}" '
+            f'style="font-variant-numeric:tabular-nums">{combined:,}'
+            f'<animate attributeName="opacity" values="0;1" dur="0.5s" '
+            f'begin="0.1s" fill="freeze"/></text>'
+        )
+    s += f'<rect x="24" y="62" width="{w - 48}" height="1" fill="{BORDER}" opacity="0.7"/>'
 
     # divider between the two columns
     s += (
-        f'<line x1="400" y1="50" x2="400" y2="284" '
-        f'stroke="{BORDER}" stroke-width="1" stroke-dasharray="4 4"/>'
+        f'<line x1="400" y1="76" x2="400" y2="246" '
+        f'stroke="{BORDER}" stroke-width="1" stroke-dasharray="4 4" opacity="0.8"/>'
     )
 
+    # ---- 7-day trend for PyPI (npm exposes no daily series) --------------
+    today = date.today()
+    last7 = sum(
+        pypi_daily.get((today - timedelta(days=k)).isoformat(), 0) for k in range(7)
+    )
+    prev7 = sum(
+        pypi_daily.get((today - timedelta(days=k)).isoformat(), 0)
+        for k in range(7, 14)
+    )
+    trend = None
+    if prev7:
+        trend = (last7 - prev7) / prev7 * 100
+
     columns = [
-        ("npm", npm_total, "npm downloads", NPM_C, npm_note, 24, "pdNpmChip"),
-        ("pypi", pypi_lifetime, "pypi downloads", PYPI_C, pypi_note, 424, "pdPyChip"),
+        ("npm", npm_total, "npm downloads", NPM_C, npm_note, 24, "pdNpmChip",
+         None),
+        ("pypi", pypi_lifetime, "pypi downloads", PYPI_C, pypi_note, 424,
+         "pdPyChip", (last7, trend)),
     ]
 
-    for label, total, sub, color, note, x, chip in columns:
+    for label, total, sub, color, note, x, chip, extra in columns:
         # soft accent chip behind each column so the panel reads as two
         # tinted halves rather than plain text on a flat card
         s += (
-            f'<rect x="{x - 14}" y="46" width="352" height="150" rx="12" '
+            f'<rect x="{x - 14}" y="72" width="352" height="176" rx="12" '
             f'fill="url(#{chip})"/>'
         )
         s += (
-            f'<circle cx="{x + 5}" cy="{66}" r="3.5" fill="{color}"/>'
-            f'<text x="{x + 16}" y="70" font-size="13" font-weight="700" '
+            f'<circle cx="{x + 5}" cy="92" r="3.5" fill="{color}"/>'
+            f'<text x="{x + 16}" y="96" font-size="12" font-weight="700" '
             f'fill="{color}" letter-spacing="0.6">{label.upper()}</text>'
         )
         if total is None:
             s += (
-                f'<text x="{x}" y="126" font-size="34" font-weight="700" fill="{MUT}">'
+                f'<text x="{x}" y="146" font-size="28" font-weight="700" fill="{MUT}">'
                 f"unavailable</text>"
             )
             continue
 
+        # the number
         s += (
-            f'<text x="{x}" y="130" font-size="46" font-weight="700" fill="{color}">'
-            f"{total:,}"
-            f'<animate attributeName="opacity" values="0.88;1;0.88" dur="3.4s" '
-            f'calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1" '
-            f'repeatCount="indefinite"/>'
-            f"</text>"
+            f'<text x="{x}" y="152" font-size="44" font-weight="700" fill="{color}" '
+            f'style="font-variant-numeric:tabular-nums">{total:,}'
+            f'<animate attributeName="opacity" values="0;1" dur="0.5s" '
+            f'begin="0.15s" fill="freeze"/></text>'
         )
-        s += (
-            f'<text x="{x}" y="152" font-size="12" fill="{MUT}">{sub}</text>'
-        )
+        s += f'<text x="{x}" y="172" font-size="11.5" fill="{MUT}">{sub}</text>'
 
-        # note, wrapped to two lines of ~34 chars
+        # share of the combined total
+        if combined:
+            pct = total / combined * 100
+            s += (
+                f'<text x="{x}" y="192" font-size="10" fill="{MUT}">'
+                f'share of combined</text>'
+                f'<text x="{x + 96}" y="192" font-size="11" font-weight="700" '
+                f'fill="{color}">{pct:.1f}%</text>'
+            )
+            track_w = 300
+            s += (
+                f'<rect x="{x}" y="198" width="{track_w}" height="6" rx="3" '
+                f'fill="#0b0f1a"/>'
+                f'<rect x="{x}" y="198" width="0" height="6" rx="3" fill="{color}">'
+                f'<animate attributeName="width" from="0" '
+                f'to="{track_w * pct / 100:.1f}" '
+                f'dur="0.9s" begin="0.3s" fill="freeze" calcMode="spline" '
+                f'keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/></rect>'
+            )
+
+        # 7-day trend, where the source provides one
+        if extra and extra[0]:
+            l7, tr = extra
+            if tr is None:
+                txt, tcol = f"last 7d: {l7:,}", MUT
+            else:
+                txt = f"last 7d: {l7:,}  ({tr:+.0f}%)"
+                tcol = GREEN if tr >= 0 else RED
+            s += (
+                f'<text x="{x}" y="222" font-size="10" fill="{tcol}">'
+                f"{html.escape(txt)}</text>"
+            )
+
+        # note, wrapped to two lines
         words = note.split()
         line1, line2 = "", ""
         for wd in words:
-            if len(line1) + len(wd) + 1 <= 34:
+            if len(line1) + len(wd) + 1 <= 36:
                 line1 = (line1 + " " + wd).strip()
             else:
                 line2 = (line2 + " " + wd).strip()
         s += (
-            f'<text x="{x}" y="172" font-size="10" fill="{MUT}">'
+            f'<text x="{x}" y="240" font-size="9.5" fill="{MUT}" opacity="0.85">'
             f"{html.escape(line1)}</text>"
         )
         if line2:
             s += (
-                f'<text x="{x}" y="186" font-size="10" fill="{MUT}">'
+                f'<text x="{x}" y="253" font-size="9.5" fill="{MUT}" opacity="0.85">'
                 f"{html.escape(line2)}</text>"
             )
 
-    # ---- combined bar: npm + pypi, each bar scaled to its own max ----
+    # ---- daily chart -----------------------------------------------------
     s += (
-        f'<text x="24" y="216" font-size="11" font-weight="700" fill="{MUT}" '
+        f'<rect x="24" y="262" width="{w - 48}" height="1" fill="{BORDER}" '
+        f'opacity="0.7"/>'
+    )
+    s += (
+        f'<text x="24" y="284" font-size="10.5" font-weight="700" fill="{MUT}" '
         f'letter-spacing="0.8">DAILY DOWNLOADS &#183; LAST 60 DAYS</text>'
     )
-    today = date.today()
     days = 60
     start = today - timedelta(days=days - 1)
     x0, x1 = 24, 776
-    y_top, y_base = 228, 280
+    y_top, y_base = 296, 352
     plot_w = x1 - x0
     slot = plot_w / days
     bar_w = slot * 0.62
@@ -1207,9 +1278,10 @@ def package_downloads():
         )
         # legend, so the single series is not mistaken for a combined total
         s += (
-            f'<rect x="{x1 - 118}" y="207" width="9" height="9" rx="2" '
+            f'<rect x="{x1 - 118}" y="{y_top - 22}" width="9" height="9" rx="2" '
             f'fill="{PYPI_C}"/>'
-            f'<text x="{x1 - 104}" y="215" font-size="9" fill="{MUT}">PyPI / day</text>'
+            f'<text x="{x1 - 104}" y="{y_top - 14}" font-size="9" fill="{MUT}">'
+            f'PyPI / day</text>'
         )
     s += "</svg>"
     return s
