@@ -620,10 +620,12 @@ def stats_cards():
 
     Layout note: a child <animateTransform attributeName="transform"> *replaces*
     its element's transform attribute rather than composing with it. The
-    previous version put the bob animation directly on the positioned <g>, so
-    every card was yanked back to translate(0,0) and all six stacked on the
-    same spot. The position now lives on an outer <g> and only an inner <g>
-    animates.
+    position now lives on an outer <g> and only an inner <g> animates.
+
+    Visual note: each card is a small glass tile — vertical gradient surface,
+    a tinted glow in the accent colour, an icon chip, and an accent underline
+    that draws itself in. A single sheen sweeps the whole panel so the grid
+    reads as one surface rather than six loose boxes.
     """
     profile = _api(f"/users/{USERNAME}") or {}
     repos = _own_repos()
@@ -648,22 +650,42 @@ def stats_cards():
         ("Years", years, ORANGE, "&#128197;"),
     ]
 
-    w, h = 800, 230
+    w, h = 800, 250
     pad = 24
-    gap_x, gap_y = 16, 14
+    gap_x, gap_y = 14, 14
     cw = (w - 2 * pad - 2 * gap_x) // 3
-    ch = 73
-    top = 50
+    ch = 84
+    top = 54
 
     s = open_svg(w, h)
     s += card(w, h)
     s += (
-        f'<text x="{pad}" y="32" font-size="15" font-weight="700" fill="{MUT}">'
-        f"&#128200; account stats</text>"
+        "<defs>"
+        '<linearGradient id="stTile" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0" stop-color="#141a26"/>'
+        f'<stop offset="1" stop-color="#0b0f1a"/>'
+        "</linearGradient>"
+        '<linearGradient id="stSheen" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0" stop-color="#ffffff" stop-opacity="0"/>'
+        '<stop offset="0.5" stop-color="#ffffff" stop-opacity="0.055"/>'
+        '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>'
+        "</linearGradient>"
+        "</defs>"
+    )
+
+    # header
+    s += (
+        f'<text x="{pad}" y="34" font-size="15" font-weight="700" fill="{TXT}" '
+        f'letter-spacing="0.3">&#128200; account stats</text>'
     )
     s += (
-        f'<text x="{w - pad}" y="32" text-anchor="end" font-size="11" '
-        f'fill="{MUT}">@{html.escape(USERNAME)}</text>'
+        f'<text x="{w - pad}" y="34" text-anchor="end" font-size="11" '
+        f'fill="{MUT}" font-family="{MONO}">@{html.escape(USERNAME)}</text>'
+    )
+    # accent rule under the header
+    s += (
+        f'<rect x="{pad}" y="42" width="{w - 2 * pad}" height="1" '
+        f'fill="{BORDER}" opacity="0.7"/>'
     )
 
     for i, (label, value, color, icon) in enumerate(cells):
@@ -674,46 +696,94 @@ def stats_cards():
 
         # outer g = fixed position (never animated)
         s += f'<g transform="translate({x},{y})">'
+        # tile surface
         s += (
-            f'<rect width="{cw}" height="{ch}" rx="12" fill="#0b0f1a" '
-            f'stroke="{BORDER}"/>'
+            f'<rect width="{cw}" height="{ch}" rx="13" fill="url(#stTile)" '
+            f'stroke="{BORDER}" stroke-width="1"/>'
         )
-        # colour accent on the left edge
-        s += f'<rect x="0" y="10" width="3" height="{ch - 20}" rx="1.5" fill="{color}"/>'
+        # accent glow, clipped by the rounded tile
+        s += (
+            f'<g clip-path="inset(0 round 13px)">'
+            f'<circle cx="{cw - 8}" cy="4" r="42" fill="{color}" opacity="0.13"/>'
+            f'<circle cx="{cw - 8}" cy="4" r="22" fill="{color}" opacity="0.10"/>'
+            f'</g>'
+        )
 
         # inner g = the only thing that animates
         s += (
             f'<g>'
             f'<animateTransform attributeName="transform" type="translate" '
-            f'values="0 0;0 -3;0 0" dur="3.6s" begin="{i * 0.15:.2f}s" '
-            f'repeatCount="indefinite"/>'
+            f'values="0 0;0 -3;0 0" dur="{3.6 + i * 0.12:.2f}s" '
+            f'begin="{i * 0.15:.2f}s" repeatCount="indefinite" '
+            f'calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1" '
+            f'keyTimes="0;0.5;1"/>'
         )
+
+        # icon chip
         s += (
-            f'<text x="16" y="24" font-size="11" fill="{MUT}">{icon} {label}</text>'
+            f'<rect x="14" y="14" width="26" height="26" rx="7" '
+            f'fill="{color}" opacity="0.14"/>'
+            f'<rect x="14" y="14" width="26" height="26" rx="7" '
+            f'fill="none" stroke="{color}" stroke-width="0.9" opacity="0.4"/>'
+            f'<text x="27" y="32" text-anchor="middle" font-size="13">{icon}</text>'
         )
-        # count-up feel: digits fade/slide in once, then hold
+        # label
         s += (
-            f'<text x="16" y="58" font-size="27" font-weight="700" fill="{color}">'
+            f'<text x="48" y="24" font-size="9.5" fill="{MUT}" '
+            f'letter-spacing="1.1">{label.upper()}</text>'
+            f'<text x="48" y="37" font-size="8.5" fill="{MUT}" opacity="0.65">'
+            f'all time</text>'
+        )
+        # the number
+        s += (
+            f'<text x="14" y="70" font-size="27" font-weight="700" fill="{color}" '
+            f'style="font-variant-numeric:tabular-nums">'
             f"{value:,}"
             f'<animate attributeName="opacity" values="0;1" dur="0.5s" '
             f'begin="{0.1 + i * 0.08:.2f}s" fill="freeze"/>'
             f"</text>"
         )
+        # accent underline that draws in
+        s += (
+            f'<rect x="14" y="{ch - 12}" width="0" height="2.4" rx="1.2" '
+            f'fill="{color}" opacity="0.85">'
+            f'<animate attributeName="width" from="0" to="{cw - 28}" '
+            f'dur="0.9s" begin="{0.25 + i * 0.09:.2f}s" fill="freeze" '
+            f'calcMode="spline" keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/>'
+            f"</rect>"
+        )
         # pulsing status dot, top-right of the card
         s += (
-            f'<circle cx="{cw - 16}" cy="18" r="3" fill="{color}">'
-            f'<animate attributeName="opacity" values="1;0.25;1" dur="2.4s" '
+            f'<circle cx="{cw - 16}" cy="26" r="3" fill="{color}">'
+            f'<animate attributeName="opacity" values="1;0.25;1" dur="{2.4 + i * 0.1:.1f}s" '
             f'begin="{i * 0.2:.2f}s" repeatCount="indefinite"/>'
             f"</circle>"
         )
         s += "</g></g>"
+
+    # one sheen sweeping the whole grid
+    s += (
+        f'<g clip-path="inset(0 round 16px)" opacity="0.9">'
+        f'<rect x="-260" y="0" width="220" height="{h}" fill="url(#stSheen)" '
+        f'transform="skewX(-18)">'
+        f'<animateTransform attributeName="transform" type="translate" '
+        f'values="0 0;1180 0;1180 0" keyTimes="0;0.55;1" dur="9s" '
+        f'repeatCount="indefinite" additive="sum"/>'
+        f'</rect></g>'
+    )
 
     s += "</svg>"
     return s
 
 
 def top_langs():
-    """Horizontal language bars with real share, animated width."""
+    """Language mix: a donut summary plus gradient bars with real share.
+
+    The previous version was a plain list of flat rectangles, which read as a
+    progress-bar form rather than a data graphic. Now the composition is stated
+    twice — once as a proportional ring, once as ranked bars — so the eye gets
+    both the whole and the parts.
+    """
     repos = _own_repos()
     counts = {}
     for r in repos:
@@ -726,34 +796,140 @@ def top_langs():
     total = sum(counts.values())
     palette = [YELLOW, BLUE, CYAN, PURPLE, ORANGE, TEAL]
 
-    w, h = 800, 40 + len(ordered) * 44 + 12
+    top = 56
+    row_h = 40
+    body_h = len(ordered) * row_h
+    w, h = 800, top + body_h + 56
     s = open_svg(w, h)
     s += card(w, h)
     s += (
-        f'<text x="24" y="30" font-size="15" font-weight="700" fill="{MUT}">'
-        f"&#128200; language mix &#183; {total} repos</text>"
+        "<defs>"
+        '<linearGradient id="tlSheen" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0" stop-color="#ffffff" stop-opacity="0"/>'
+        '<stop offset="0.5" stop-color="#ffffff" stop-opacity="0.16"/>'
+        '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>'
+        "</linearGradient>"
+        "</defs>"
     )
-    bar_x, bar_max = 190, 520
+
+    # header
+    s += (
+        f'<text x="24" y="32" font-size="15" font-weight="700" fill="{TXT}" '
+        f'letter-spacing="0.3">&#128200; language mix</text>'
+    )
+    s += (
+        f'<text x="{w - 24}" y="32" text-anchor="end" font-size="10.5" '
+        f'fill="{MUT}">{total} repositories &#183; primary language</text>'
+    )
+    s += f'<rect x="24" y="42" width="{w - 48}" height="1" fill="{BORDER}" opacity="0.7"/>'
+
+    # ---- donut summary ---------------------------------------------------
+    dcx, dcy, dr = 128, top + body_h / 2 + 6, 62
+    sw = 19
+    circ = 2 * math.pi * dr
+    acc = 0.0
+    # track
+    s += (
+        f'<circle cx="{dcx}" cy="{dcy}" r="{dr}" fill="none" '
+        f'stroke="#0b0f1a" stroke-width="{sw}"/>'
+    )
     for i, (lang, n) in enumerate(ordered):
-        y = 50 + i * 44
+        frac = n / total
+        dash = frac * circ
+        gap = circ - dash
+        rot = -90 + acc * 360
+        s += (
+            f'<circle cx="{dcx}" cy="{dcy}" r="{dr}" fill="none" '
+            f'stroke="{palette[i % len(palette)]}" stroke-width="{sw}" '
+            f'stroke-dasharray="{dash:.2f} {gap:.2f}" '
+            f'transform="rotate({rot:.2f} {dcx} {dcy})" opacity="0.92">'
+            f'<animate attributeName="stroke-dasharray" '
+            f'from="0 {circ:.2f}" to="{dash:.2f} {gap:.2f}" '
+            f'dur="1.0s" begin="{i * 0.11:.2f}s" fill="freeze"/>'
+            f"</circle>"
+        )
+        acc += frac
+    # centre label
+    s += (
+        f'<text x="{dcx}" y="{dcy - 2}" text-anchor="middle" font-size="30" '
+        f'font-weight="700" fill="{TXT}">{total}'
+        f'<animate attributeName="opacity" values="0;1" dur="0.6s" '
+        f'begin="0.15s" fill="freeze"/></text>'
+    )
+    s += (
+        f'<text x="{dcx}" y="{dcy + 16}" text-anchor="middle" font-size="9.5" '
+        f'fill="{MUT}" letter-spacing="1">REPOSITORIES</text>'
+    )
+
+    # ---- ranked bars -----------------------------------------------------
+    bar_x = 248
+    bar_max = 470
+    for i, (lang, n) in enumerate(ordered):
+        y = top + 10 + i * row_h
         share = n / total
-        bw = max(6.0, bar_max * share)
+        bw = max(8.0, bar_max * share)
         color = palette[i % len(palette)]
+        # label
         s += (
-            f'<text x="24" y="{y + 20}" font-size="13" fill="{TXT}">{html.escape(lang)}</text>'
+            f'<text x="{bar_x - 14}" y="{y + 17}" text-anchor="end" '
+            f'font-size="12.5" fill="{TXT}">{html.escape(lang)}</text>'
         )
+        # track
         s += (
-            f'<rect x="{bar_x}" y="{y}" width="{bar_max}" height="26" rx="13" fill="#0b0f1a" stroke="{BORDER}"/>'
-            f'<rect x="{bar_x}" y="{y}" width="{bw:.1f}" height="26" rx="13" fill="{color}">'
-            f'<animate attributeName="width" from="0" to="{bw:.1f}" dur="1.1s" '
-            f'begin="{i * 0.12}s" fill="freeze"/></rect>'
-            f'<text x="{bar_x + 12}" y="{y + 18}" font-size="12" font-weight="700" fill="#0d1117">'
-            f"{n}</text>"
+            f'<rect x="{bar_x}" y="{y}" width="{bar_max}" height="22" rx="11" '
+            f'fill="#0b0f1a" stroke="{BORDER}" stroke-width="0.8"/>'
         )
+        # fill with a vertical gradient of its own colour
         s += (
-            f'<text x="{bar_x + bar_max + 14}" y="{y + 18}" font-size="12" fill="{MUT}">'
-            f"{round(share * 100)}%</text>"
+            f'<g clip-path="inset(0 round 11px)">'
+            f'<rect x="{bar_x}" y="{y}" width="0" height="22" rx="11" fill="{color}" '
+            f'opacity="0.92">'
+            f'<animate attributeName="width" from="0" to="{bw:.1f}" '
+            f'dur="1.1s" begin="{i * 0.12:.2f}s" fill="freeze" '
+            f'calcMode="spline" keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/>'
+            f"</rect>"
+            f'<rect x="{bar_x}" y="{y}" width="{bw:.1f}" height="10" rx="5" '
+            f'fill="#ffffff" opacity="0.14">'
+            f'<animate attributeName="width" from="0" to="{bw:.1f}" '
+            f'dur="1.1s" begin="{i * 0.12:.2f}s" fill="freeze" '
+            f'calcMode="spline" keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/>'
+            f"</rect>"
+            f"</g>"
         )
+        # count inside the bar
+        if bw > 40:
+            s += (
+                f'<text x="{bar_x + 12}" y="{y + 15.5}" font-size="11" '
+                f'font-weight="700" fill="#0d1117" opacity="0">{n}'
+                f'<animate attributeName="opacity" values="0;1" dur="0.4s" '
+                f'begin="{0.6 + i * 0.12:.2f}s" fill="freeze"/></text>'
+            )
+        # share at the right
+        s += (
+            f'<text x="{bar_x + bar_max + 12}" y="{y + 15.5}" font-size="11.5" '
+            f'fill="{MUT}">{share * 100:.0f}%</text>'
+        )
+
+    # ---- stacked composition strip --------------------------------------
+    sy = h - 32
+    s += f'<rect x="24" y="{sy}" width="{w - 48}" height="7" rx="3.5" fill="#0b0f1a"/>'
+    acc = 0.0
+    for i, (lang, n) in enumerate(ordered):
+        frac = n / total
+        x = 24 + acc * (w - 48)
+        wd = frac * (w - 48)
+        s += (
+            f'<rect x="{x:.2f}" y="{sy}" width="0" height="7" rx="3.5" '
+            f'fill="{palette[i % len(palette)]}">'
+            f'<animate attributeName="width" from="0" to="{wd:.2f}" '
+            f'dur="0.9s" begin="{0.3 + i * 0.1:.2f}s" fill="freeze"/></rect>'
+        )
+        acc += frac
+    s += (
+        f'<text x="24" y="{sy + 20}" font-size="8.5" fill="{MUT}" '
+        f'opacity="0.7">every repository, one stripe each</text>'
+    )
+
     s += "</svg>"
     return s
 

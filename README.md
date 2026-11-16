@@ -81,19 +81,15 @@
 </tr>
 <tr>
 <td align="center" width="400"><img src="assets/pacman.svg" width="400" alt="pacman maze"></td>
-<td align="center" width="400"><img src="assets/octocat.svg" width="400" alt="octocat"></td>
-</tr>
-<tr>
 <td align="center" width="400"><img src="assets/matrix.svg" width="400" alt="matrix"></td>
+</tr>
+<tr>
 <td align="center" width="400"><img src="assets/daynight.svg" width="400" alt="day night cycle"></td>
-</tr>
-<tr>
 <td align="center" width="400"><img src="assets/neofetch.svg" width="400" alt="neofetch"></td>
-<td align="center" width="400"><img src="assets/neural-network.svg" width="400" alt="neural network"></td>
 </tr>
 <tr>
+<td align="center" width="400"><img src="assets/neural-network.svg" width="400" alt="neural network"></td>
 <td align="center" width="400"><img src="assets/music.svg" width="400" alt="now playing"></td>
-<td align="center" width="400"><img src="assets/joke.svg" width="400" alt="joke"></td>
 </tr>
 </table>
 
@@ -104,6 +100,8 @@
 ![codewindow](assets/codewindow.svg)
 
 ![circuit-board](assets/circuit-board.svg)
+
+![joke](assets/joke.svg)
 
 ![quote](assets/quote.svg)
 
@@ -128,15 +126,6 @@
 <sub><b>How the totals are computed.</b> <b>npm</b>: <code>downloads/point/last-year</code>; the package was first published 2026-08-15, which falls inside that window, so the value is the full lifetime total. <b>PyPI</b>: PyPI's own JSON API reports <code>downloads: -1</code> (stats disabled), so shields.io's <code>pypi/dt</code> badge is permanently "404: badge not found". The figure above sums the per-day counts from pypistats.org, which start exactly at the first upload (2026-08-19), so it is also a full lifetime total. Mirrors are excluded, matching PyPI's official metric — the same one shields.io uses for <code>pypi/dm</code>.</sub>
 
 </div>
-
----
-
-## 💭 Currently Exploring
-
-- 🤖 **LLM Agents & Multi-Agent Systems** — autonomous workflows, tool use, eval harnesses
-- 🎥 **Generative Video & 3D** — real-time pipelines and asset tooling
-- 🦀 **Rust & Systems Programming** — performance-critical internals
-- ☸️ **Kubernetes & Cloud Native** — deployment, scaling, observability
 
 ---
 

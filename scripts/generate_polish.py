@@ -22,7 +22,7 @@ import math
 import random
 from pathlib import Path
 
-from generate_scenes import (ASSETS, BLUE, BORDER, CARD, CYAN, GREEN, MUT,
+from generate_scenes import (ASSETS, BLUE, BORDER, CARD, CYAN, FONT, GREEN, MUT,
                              MONO, ORANGE, PINK, PURPLE, RED, TEAL, TXT, YELLOW,
                              esc, save, svg)
 
@@ -664,26 +664,85 @@ def skill_radar():
         b.append(f'<line x1="{CX}" y1="{CY}" x2="{x:.1f}" y2="{y:.1f}" '
                  f'stroke="{BORDER}" stroke-width="1" opacity="0.8"/>')
 
-    # sweep
-    b.append(f'<g>'
-             f'<animateTransform attributeName="transform" type="rotate" '
-             f'from="0 {CX} {CY}" to="360 {CX} {CY}" dur="5.2s" '
-             f'repeatCount="indefinite"/>'
-             f'<path d="M {CX},{CY} L {CX},{CY - R} A {R} {R} 0 0 1 '
-             f'{CX + R * 0.34:.1f},{CY - R * 0.94:.1f} Z" fill="url(#kSweep)"/>'
-             f'<line x1="{CX}" y1="{CY}" x2="{CX}" y2="{CY - R}" '
-             f'stroke="{CYAN}" stroke-width="1.6" opacity="0.85"/>'
-             f'</g>')
+    # ---- sweep -----------------------------------------------------------
+    # A real plan-position-indicator sweep is not one wedge: it is a leading
+    # edge plus a trail that decays behind it. Build ~18 thin wedges whose
+    # opacity falls off with angular distance, all inside one rotating group.
+    SWEEP_T = 5.2
+    NW = 18
+    span = 360.0 / NW            # each slice covers this many degrees
+    trail = 100.0                # total angular length of the afterglow
+    b.append('<g>')
+    b.append(f'<animateTransform attributeName="transform" type="rotate" '
+             f'from="0 {CX} {CY}" to="360 {CX} {CY}" dur="{SWEEP_T}s" '
+             f'repeatCount="indefinite"/>')
+    for i in range(NW):
+        a0 = -i * span
+        a1 = a0 - span
+        p0 = (CX + R * math.cos(math.radians(a0 - 90)),
+              CY + R * math.sin(math.radians(a0 - 90)))
+        p1 = (CX + R * math.cos(math.radians(a1 - 90)),
+              CY + R * math.sin(math.radians(a1 - 90)))
+        # exponential decay with angular distance behind the leading edge
+        d = i * span
+        op = 0.42 * math.exp(-d / (trail * 0.42))
+        b.append(
+            f'<path d="M {CX},{CY} L {p0[0]:.1f},{p0[1]:.1f} '
+            f'A {R} {R} 0 0 1 {p1[0]:.1f},{p1[1]:.1f} Z" '
+            f'fill="{CYAN}" opacity="{op:.4f}"/>'
+        )
+    # leading edge: a bright core with a soft bloom
+    b.append(f'<line x1="{CX}" y1="{CY}" x2="{CX}" y2="{CY - R}" '
+             f'stroke="{CYAN}" stroke-width="5" opacity="0.16"/>')
+    b.append(f'<line x1="{CX}" y1="{CY}" x2="{CX}" y2="{CY - R}" '
+             f'stroke="{CYAN}" stroke-width="2" opacity="0.95"/>')
+    b.append(f'<line x1="{CX}" y1="{CY}" x2="{CX}" y2="{CY - R}" '
+             f'stroke="#eafff8" stroke-width="0.9" opacity="0.9"/>')
+    # a bright pip riding the tip
+    b.append(f'<circle cx="{CX}" cy="{CY - R}" r="3" fill="#eafff8" opacity="0.9"/>')
+    b.append('</g>')
 
-    # data polygon
+    # ---- bearing ticks around the rim -----------------------------------
+    NT = 72
+    for k in range(NT):
+        ang = math.radians(k * 360.0 / NT - 90)
+        major = k % 6 == 0
+        r1 = R + (11 if major else 6)
+        x1 = CX + math.cos(ang) * r1
+        y1 = CY + math.sin(ang) * r1
+        x2 = CX + math.cos(ang) * R
+        y2 = CY + math.sin(ang) * R
+        b.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+                 f'stroke="{CYAN}" stroke-width="{1.4 if major else 0.7}" '
+                 f'opacity="{0.55 if major else 0.22}"/>')
+
+    # ---- data polygon ----------------------------------------------------
     pts = [pt(i, R * (v / max(x[1] for x in data))) for i, (_, v, _) in enumerate(data)]
     b.append(f'<polygon points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in pts)}" '
              f'fill="url(#kPoly)" stroke="{CYAN}" stroke-width="2.2"/>')
+    # vertices flash as the sweep passes their bearing
     for i, (x, y) in enumerate(pts):
         col = data[i][2]
+        ang = -90 + i * 360.0 / n
+        phi = (ang + 90) % 360                 # clockwise angle from up
+        hit = phi / 360.0 * SWEEP_T
         b.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{col}">'
-                 f'<animate attributeName="r" values="4;6;4" dur="2.6s" '
+                 f'<animate attributeName="r" values="4;5.5;4" dur="2.8s" '
                  f'begin="{i * 0.22:.2f}s" repeatCount="indefinite"/></circle>')
+        # expanding halo when painted
+        # For the vertex at the top (i=0) hit == 0, so a naive
+        # max(0, hit - 0.04) yields a duplicate 0 and SMIL rejects the list.
+        # mono() quantises and forces a strictly increasing sequence.
+        halo_t = mono([0, max(0.0, hit - 0.04), hit + 0.05, hit + 0.22, SWEEP_T],
+                      SWEEP_T)
+        b.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="none" '
+                 f'stroke="{col}" stroke-width="1.4" opacity="0">'
+                 f'<animate attributeName="r" values="4;4;16;20;20" '
+                 f'keyTimes="{halo_t}" '
+                 f'dur="{SWEEP_T}s" repeatCount="indefinite"/>'
+                 f'<animate attributeName="opacity" values="0;0;0.75;0;0" '
+                 f'keyTimes="{halo_t}" '
+                 f'dur="{SWEEP_T}s" repeatCount="indefinite"/></circle>')
 
     # axis labels
     for i, (name, v, col) in enumerate(data):
@@ -732,13 +791,106 @@ def skill_radar():
 CYCLE_D = 14.0
 
 
+# ---------------------------------------------------------------------------
+# 6. joke - rotating developer jokes, full width
+# ---------------------------------------------------------------------------
+def joke():
+    """Dev Joke card.
+
+    The previous version was a static asset with a latent SMIL bug: its
+    keyTimes began "0;0.000;..." — a duplicated stop, which makes the list
+    invalid and can leave the punchlines permanently at opacity 0. This one is
+    generated, uses monotonic keyTimes, and is authored at full width.
+    """
+    jokes = [
+        ("Why do programmers prefer dark mode?",
+         "Because light attracts bugs."),
+        ("A SQL query walks into a bar,",
+         "walks up to two tables and asks: can I join you?"),
+        ("There are 10 types of people:",
+         "those who understand binary, and those who don't."),
+    ]
+    W, H = 800, 200
+    n = len(jokes)
+    seg = 1.0 / n
+    CYCLE = 15.0
+
+    b = []
+    defs = [
+        '<linearGradient id="jSheen" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0" stop-color="#ffffff" stop-opacity="0"/>'
+        '<stop offset="0.5" stop-color="#ffffff" stop-opacity="0.05"/>'
+        '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>'
+        '</linearGradient>',
+    ]
+    b.append(f'<rect width="{W}" height="{H}" fill="{CARD}"/>')
+    b.append(f'<rect x="1" y="1" width="{W - 2}" height="{H - 2}" rx="16" '
+             f'fill="none" stroke="{BORDER}"/>')
+    # accent block on the left
+    b.append(f'<rect x="1" y="1" width="5" height="{H - 2}" rx="2.5" fill="{YELLOW}" '
+             f'opacity="0.85"/>')
+
+    # header
+    b.append(f'<text x="28" y="40" font-family="{FONT}" font-size="15" '
+             f'font-weight="700" fill="{YELLOW}">&#128514; Dev Joke</text>')
+    b.append(f'<rect x="28" y="50" width="{W - 56}" height="1" fill="{BORDER}" '
+             f'opacity="0.7"/>')
+
+    # three jokes, each opaque for its own slice of the cycle
+    for i, (setup, punch) in enumerate(jokes):
+        t0 = i * seg
+        t1 = (i + 1) * seg
+        fade = 0.012
+        times = mono([0, t0 * CYCLE, (t0 + fade) * CYCLE,
+                      (t1 - fade) * CYCLE, t1 * CYCLE, CYCLE], CYCLE)
+        op = f'<animate attributeName="opacity" values="0;0;1;1;0;0" ' \
+             f'keyTimes="{times}" dur="{CYCLE}s" repeatCount="indefinite"/>'
+        b.append(
+            f'<text x="28" y="92" font-family="{FONT}" font-size="17" '
+            f'fill="{TXT}" opacity="0">{esc(setup)}{op}</text>'
+        )
+        b.append(
+            f'<text x="28" y="122" font-family="{FONT}" font-size="17" '
+            f'fill="{CYAN}" opacity="0">{esc(punch)}{op}</text>'
+        )
+        # counter
+        b.append(
+            f'<text x="{W - 28}" y="40" text-anchor="end" '
+            f'font-family="{MONO}" font-size="10" fill="{MUT}" opacity="0">'
+            f'{i + 1} / {n}{op}</text>'
+        )
+
+    # progress dots
+    for i in range(n):
+        cx = 28 + i * 16
+        b.append(f'<circle cx="{cx}" cy="{H - 26}" r="3.4" fill="{BORDER}"/>')
+        b.append(
+            f'<circle cx="{cx}" cy="{H - 26}" r="3.4" fill="{YELLOW}" opacity="0">'
+            f'<animate attributeName="opacity" values="0;0;1;1;0;0" '
+            f'keyTimes="{mono([0, i * seg * CYCLE, (i * seg + 0.012) * CYCLE, ((i + 1) * seg - 0.012) * CYCLE, (i + 1) * seg * CYCLE, CYCLE], CYCLE)}" '
+            f'dur="{CYCLE}s" repeatCount="indefinite"/></circle>'
+        )
+
+    # a sheen sweeping across every few seconds
+    b.append(
+        f'<g clip-path="inset(0 round 16px)">'
+        f'<rect x="-200" y="0" width="160" height="{H}" fill="url(#jSheen)" '
+        f'transform="skewX(-16)">'
+        f'<animateTransform attributeName="transform" type="translate" '
+        f'values="0 0;1100 0;1100 0" keyTimes="0;0.5;1" dur="11s" '
+        f'repeatCount="indefinite" additive="sum"/>'
+        f'</rect></g>'
+    )
+    return svg(W, H, "".join(b), "".join(defs))
+
+
 def main():
     print("generating polish pass:")
     save("coffee.svg", coffee())
-    save("octocat.svg", octocat())
     save("conway.svg", conway())
     save("dna.svg", dna())
     save("skill-radar.svg", skill_radar())
+    save("joke.svg", joke())
     print("done.")
 
 
