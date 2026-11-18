@@ -51,6 +51,42 @@ FONT = "Segoe UI, Helvetica, Arial, sans-serif"
 MONO = "Consolas, Menlo, monospace"
 
 
+def esc(s):
+    """Escape text for XML/SVG output."""
+    return html.escape(s, quote=True)
+
+
+def fit(text, max_px, font_px=12.5):
+    """Truncate `text` to roughly `max_px` of rendered width.
+
+    A flat character count is wrong here: CJK glyphs are about 1.0em wide while
+    Latin lowercase is ~0.5em, so 68 characters of Chinese overflows the card
+    badly while 68 Latin characters fit. Estimate per-character advance instead.
+    """
+    def adv(ch):
+        if ord(ch) > 0x2E80:          # CJK ideographs / fullwidth forms
+            return font_px * 1.0
+        if ch in " ":
+            return font_px * 0.30
+        if ch in "iljtfrI.,;:'|![]()":
+            return font_px * 0.32
+        if ch in "mwMW@%":
+            return font_px * 0.86
+        if ch.isupper():
+            return font_px * 0.68
+        return font_px * 0.55
+
+    total = 0.0
+    out = []
+    for ch in text:
+        wch = adv(ch)
+        if total + wch > max_px:
+            return "".join(out).rstrip() + "…"
+        out.append(ch)
+        total += wch
+    return text
+
+
 def open_svg(w, h):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
@@ -344,46 +380,204 @@ def pulse():
 # --------------------------------------------------------------------------
 # 5. spotlight - cycling featured-repo cards
 # --------------------------------------------------------------------------
+def _mono(vals, dur):
+    """Strictly-increasing keyTimes in [0,1] from second-offsets.
+
+    SMIL silently discards an animation whose keyTimes are not non-decreasing,
+    which leaves the element stuck at its base value. Rounding to 4 decimals
+    can collapse two stops onto the same number (0 and 0.00004 both render as
+    "0.0000"), so quantise first and then force strict increase.
+    """
+    q = [min(1.0, max(0.0, round(v / dur, 4))) for v in vals]
+    for i in range(1, len(q)):
+        if q[i] <= q[i - 1]:
+            q[i] = min(1.0, round(q[i - 1] + 1e-4, 4))
+    for i in range(len(q) - 2, -1, -1):
+        if q[i] >= q[i + 1]:
+            q[i] = max(0.0, round(q[i + 1] - 1e-4, 4))
+    q[0] = 0.0
+    q[-1] = 1.0
+    return ";".join(f"{v:.4f}" for v in q)
+
+
 def spotlight():
-    """Cross-fading cards for a few real repos."""
-    cards = [
-        ("jingtun", "Chrome MV3 media sniffer for HLS / DASH", "JavaScript", CYAN),
-        ("droidseal", "One-command end-to-end release security", "TypeScript", BLUE),
-        ("newnju.github.io", "Jekyll + Pages site, PWA offline, view transitions", "JavaScript", GREEN),
-        ("internfinding", "Internship information organiser", "TypeScript", PURPLE),
-    ]
-    w, h = 780, 170
+    """Featured-repository carousel built from live repo data.
+
+    The previous version cross-faded four text-only rows on a flat rect. Two
+    of its four keyTimes lists began "0;0.0000;...", a duplicated stop that
+    SMIL rejects outright, so those slides never faded in at all — the panel
+    showed blank gaps for a quarter of each cycle.
+
+    Now each slide is a tile: an accent avatar block carrying the repo's
+    initial, the name, description, real topic chips, and a footer with
+    language, stars and last push. Slides slide in from the right rather than
+    merely cross-fading, and a progress row shows which one is showing.
+    """
+    pool = _own_repos()
+    # prefer repos that actually have something to show
+    with_desc = [r for r in pool if (r.get("description") or "").strip()]
+    rest = [r for r in pool if r not in with_desc]
+    ordered = sorted(
+        with_desc,
+        key=lambda r: (-(r.get("stargazers_count") or 0),
+                       r.get("pushed_at") or ""),
+    ) + sorted(rest, key=lambda r: r.get("pushed_at") or "", reverse=True)
+    chosen = ordered[:4]
+    # fall back to placeholders so the panel never renders empty
+    if not chosen:
+        chosen = [{"name": "no public repos", "description": "", "language": None,
+                   "stargazers_count": 0, "topics": [], "pushed_at": None}]
+
+    palette = [CYAN, BLUE, GREEN, PURPLE, YELLOW, PINK]
+    w, h = 800, 250
     s = open_svg(w, h)
     s += card(w, h)
-    dur = len(cards) * 3.0
-    for i, (name, desc, lang, color) in enumerate(cards):
-        begin = i * 3.0
-        key = (
-            f"0;{begin / dur:.4f};{(begin + 0.12) / dur:.4f};"
-            f"{(begin + 2.7) / dur:.4f};{(begin + 3.0) / dur:.4f};1"
+    s += (
+        "<defs>"
+        '<linearGradient id="spSheen" x1="0" y1="0" x2="1" y2="0">'
+        '<stop offset="0" stop-color="#ffffff" stop-opacity="0"/>'
+        '<stop offset="0.5" stop-color="#ffffff" stop-opacity="0.05"/>'
+        '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>'
+        "</linearGradient>"
+        "</defs>"
+    )
+
+    # header
+    s += (
+        f'<text x="26" y="34" font-size="15" font-weight="700" fill="{TXT}" '
+        f'letter-spacing="0.3">&#10024; spotlight</text>'
+    )
+    s += (
+        f'<text x="{w - 26}" y="34" text-anchor="end" font-size="10.5" '
+        f'fill="{MUT}">{len(chosen)} featured repositories</text>'
+    )
+    s += (
+        f'<rect x="26" y="46" width="{w - 52}" height="1" fill="{BORDER}" '
+        f'opacity="0.8"/>'
+    )
+
+    HOLD = 3.0                       # seconds each slide stays
+    CYCLE = HOLD * len(chosen)
+    RISE = 0.34                      # slide-in / slide-out duration
+
+    for i, repo in enumerate(chosen):
+        color = palette[i % len(palette)]
+        name = repo.get("name") or "?"
+        desc = (repo.get("description") or "").strip()
+        lang = repo.get("language")
+        stars = repo.get("stargazers_count") or 0
+        topics = (repo.get("topics") or [])[:3]
+        pushed = (repo.get("pushed_at") or "")[:10]
+
+        t0 = i * HOLD
+        # visible from t0 to t0+HOLD, with a slide-in and slide-out
+        op_times = _mono([0, t0, t0 + RISE * 0.5, t0 + HOLD - RISE * 0.5,
+                          t0 + HOLD, CYCLE], CYCLE)
+        tr_vals = (f"46 0;46 0;0 0;0 0;-46 0;-46 0")
+        tr_times = _mono([0, t0, t0 + RISE, t0 + HOLD - RISE, t0 + HOLD, CYCLE],
+                         CYCLE)
+
+        s += f'<g opacity="0">'
+        s += (
+            f'<animate attributeName="opacity" values="0;0;1;1;0;0" '
+            f'keyTimes="{op_times}" dur="{CYCLE}s" repeatCount="indefinite"/>'
         )
-        op = f'<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="{key}" dur="{dur}s" repeatCount="indefinite"/>'
-        tr = (
+        s += (
             f'<animateTransform attributeName="transform" type="translate" '
-            f'values="0 0;0 0;0 0;0 0;0 0" dur="{dur}s" repeatCount="indefinite"/>'
+            f'values="{tr_vals}" keyTimes="{tr_times}" dur="{CYCLE}s" '
+            f'repeatCount="indefinite"/>'
         )
-        s += f'<g opacity="0">{op}{tr}'
+
+        # avatar tile
         s += (
-            f'<rect x="24" y="26" width="{w - 48}" height="118" rx="12" fill="#0b0f1a" stroke="{BORDER}"/>'
-            f'<rect x="24" y="26" width="4" height="118" rx="2" fill="{color}"/>'
+            f'<rect x="32" y="70" width="108" height="108" rx="20" '
+            f'fill="{color}" opacity="0.10"/>'
+            f'<rect x="32" y="70" width="108" height="108" rx="20" '
+            f'fill="none" stroke="{color}" stroke-width="1.4" opacity="0.45"/>'
         )
+        # initial(s): first letter of the first two words
+        initials = "".join(p[0] for p in name.replace("-", " ").split()[:2]).upper()
         s += (
-            f'<text x="46" y="60" font-size="18" font-weight="700" fill="{color}">'
-            f"{html.escape(name)}</text>"
+            f'<text x="86" y="140" text-anchor="middle" font-size="40" '
+            f'font-weight="700" fill="{color}" opacity="0.9">{esc(initials)}</text>'
         )
+        # a soft glow behind the tile
         s += (
-            f'<text x="46" y="88" font-size="13" fill="{TXT}">{html.escape(desc)}</text>'
+            f'<circle cx="86" cy="124" r="70" fill="{color}" opacity="0.06">'
+            f'<animate attributeName="r" values="64;78;64" '
+            f'dur="{3.6 + i * 0.3:.1f}s" repeatCount="indefinite"/></circle>'
         )
+
+        # name
         s += (
-            f'<text x="46" y="116" font-size="11" font-family="{MONO}" fill="{MUT}">'
-            f"&#9679; {html.escape(lang)}</text>"
+            f'<text x="162" y="102" font-size="21" font-weight="700" '
+            f'fill="{color}">{esc(name)}</text>'
         )
+        # description, truncated to the space actually available
+        if desc:
+            s += (
+                f'<text x="162" y="126" font-size="12.5" fill="{TXT}">'
+                f'{esc(fit(desc, w - 196))}</text>'
+            )
+
+        # topic chips
+        cx = 162
+        for tp in topics:
+            tw = len(tp) * 5.4 + 18
+            if cx + tw > w - 30:
+                break
+            s += (
+                f'<rect x="{cx:.1f}" y="138" width="{tw:.1f}" height="19" rx="9.5" '
+                f'fill="{color}" opacity="0.13" stroke="{color}" '
+                f'stroke-width="0.8" stroke-opacity="0.35"/>'
+                f'<text x="{cx + tw / 2:.1f}" y="151.5" text-anchor="middle" '
+                f'font-size="9.5" fill="{color}" opacity="0.9">{esc(tp)}</text>'
+            )
+            cx += tw + 8
+
+        # footer: language, stars, last push
+        fy = 192
+        if lang:
+            s += (
+                f'<circle cx="166" cy="{fy - 4}" r="4" fill="{color}"/>'
+                f'<text x="176" y="{fy}" font-size="10" fill="{MUT}">'
+                f'{esc(lang)}</text>'
+            )
+        if stars:
+            s += (
+                f'<text x="256" y="{fy}" font-size="10" fill="{MUT}">'
+                f'&#9733; {stars}</text>'
+            )
+        if pushed:
+            s += (
+                f'<text x="{w - 32}" y="{fy}" text-anchor="end" font-size="10" '
+                f'fill="{MUT}" opacity="0.85">pushed {esc(pushed)}</text>'
+            )
         s += "</g>"
+
+    # ---- progress dots ---------------------------------------------------
+    dot_y = h - 22
+    for i in range(len(chosen)):
+        cx = w - 32 - (len(chosen) - 1 - i) * 16
+        s += f'<circle cx="{cx}" cy="{dot_y}" r="3" fill="{BORDER}"/>'
+        s += (
+            f'<circle cx="{cx}" cy="{dot_y}" r="3" fill="{CYAN}" opacity="0">'
+            f'<animate attributeName="opacity" values="0;0;1;1;0;0" '
+            f'keyTimes="{_mono([0, i * HOLD, i * HOLD + 0.05, (i + 1) * HOLD - 0.05, (i + 1) * HOLD, CYCLE], CYCLE)}" '
+            f'dur="{CYCLE}s" repeatCount="indefinite"/></circle>'
+        )
+
+    # one sheen sweeping the panel
+    s += (
+        f'<g clip-path="inset(0 round 16px)" opacity="0.9">'
+        f'<rect x="-240" y="0" width="200" height="{h}" fill="url(#spSheen)" '
+        f'transform="skewX(-18)">'
+        f'<animateTransform attributeName="transform" type="translate" '
+        f'values="0 0;1100 0;1100 0" keyTimes="0;0.5;1" dur="10s" '
+        f'repeatCount="indefinite" additive="sum"/>'
+        f'</rect></g>'
+    )
+
     s += "</svg>"
     return s
 
