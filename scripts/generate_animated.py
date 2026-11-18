@@ -642,32 +642,36 @@ def stats_cards():
             years = 0
 
     cells = [
-        ("Repos", len(repos), CYAN, "&#128194;"),
-        ("Stars", stars, YELLOW, "&#11088;"),
-        ("Forks", forks, PURPLE, "&#127860;"),
-        ("Followers", profile.get("followers", 0), GREEN, "&#128101;"),
-        ("Following", profile.get("following", 0), TEAL, "&#128100;"),
-        ("Years", years, ORANGE, "&#128197;"),
+        ("Repos", len(repos), CYAN, "non-fork"),
+        ("Stars", stars, YELLOW, "earned"),
+        ("Forks", forks, PURPLE, "times forked"),
+        ("Followers", profile.get("followers", 0), GREEN, "people"),
+        ("Following", profile.get("following", 0), TEAL, "people"),
+        ("Years", years, ORANGE, "on GitHub"),
     ]
 
-    w, h = 800, 250
-    pad = 24
-    gap_x, gap_y = 14, 14
-    cw = (w - 2 * pad - 2 * gap_x) // 3
-    ch = 84
-    top = 54
+    # A dashboard row rather than six boxed tiles. The previous version gave
+    # every number the same weight inside a 241x84 card with a 27px figure,
+    # so each tile was two-thirds empty and nothing read as the headline.
+    # Here the numbers are the interface: 40px, tabular, one accent each,
+    # separated by hairlines, with the proportions stated underneath.
+    w, h = 800, 268
+    pad = 30
+    col_w = (w - 2 * pad) / len(cells)
+    rule_y = 58
+    label_y = 96
+    num_y = 150
+    uline_y = 162
+    sub_y = 182
+    bar_y = 210
 
     s = open_svg(w, h)
     s += card(w, h)
     s += (
         "<defs>"
-        '<linearGradient id="stTile" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0" stop-color="#141a26"/>'
-        f'<stop offset="1" stop-color="#0b0f1a"/>'
-        "</linearGradient>"
         '<linearGradient id="stSheen" x1="0" y1="0" x2="1" y2="0">'
         '<stop offset="0" stop-color="#ffffff" stop-opacity="0"/>'
-        '<stop offset="0.5" stop-color="#ffffff" stop-opacity="0.055"/>'
+        '<stop offset="0.5" stop-color="#ffffff" stop-opacity="0.05"/>'
         '<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>'
         "</linearGradient>"
         "</defs>"
@@ -675,93 +679,100 @@ def stats_cards():
 
     # header
     s += (
-        f'<text x="{pad}" y="34" font-size="15" font-weight="700" fill="{TXT}" '
+        f'<text x="{pad}" y="36" font-size="15" font-weight="700" fill="{TXT}" '
         f'letter-spacing="0.3">&#128200; account stats</text>'
     )
     s += (
-        f'<text x="{w - pad}" y="34" text-anchor="end" font-size="11" '
-        f'fill="{MUT}" font-family="{MONO}">@{html.escape(USERNAME)}</text>'
+        f'<text x="{w - pad}" y="36" text-anchor="end" font-size="10.5" '
+        f'fill="{MUT}">@{html.escape(USERNAME)} &#183; since {created or "?"}'
+        f'</text>'
     )
-    # accent rule under the header
     s += (
-        f'<rect x="{pad}" y="42" width="{w - 2 * pad}" height="1" '
-        f'fill="{BORDER}" opacity="0.7"/>'
+        f'<rect x="{pad}" y="{rule_y}" width="{w - 2 * pad}" height="1" '
+        f'fill="{BORDER}" opacity="0.8"/>'
     )
 
-    for i, (label, value, color, icon) in enumerate(cells):
-        col = i % 3
-        row = i // 3
-        x = pad + col * (cw + gap_x)
-        y = top + row * (ch + gap_y)
+    for i, (label, value, color, sub) in enumerate(cells):
+        x = pad + i * col_w
+        # hairline separator between columns (not after the last one)
+        if i:
+            s += (
+                f'<line x1="{x:.1f}" y1="{rule_y + 14}" x2="{x:.1f}" '
+                f'y2="{sub_y - 10}" stroke="{BORDER}" stroke-width="1" '
+                f'opacity="0.55"/>'
+            )
 
-        # outer g = fixed position (never animated)
-        s += f'<g transform="translate({x},{y})">'
-        # tile surface
-        s += (
-            f'<rect width="{cw}" height="{ch}" rx="13" fill="url(#stTile)" '
-            f'stroke="{BORDER}" stroke-width="1"/>'
-        )
-        # accent glow, clipped by the rounded tile
-        s += (
-            f'<g clip-path="inset(0 round 13px)">'
-            f'<circle cx="{cw - 8}" cy="4" r="42" fill="{color}" opacity="0.13"/>'
-            f'<circle cx="{cw - 8}" cy="4" r="22" fill="{color}" opacity="0.10"/>'
-            f'</g>'
-        )
-
-        # inner g = the only thing that animates
-        s += (
-            f'<g>'
-            f'<animateTransform attributeName="transform" type="translate" '
-            f'values="0 0;0 -3;0 0" dur="{3.6 + i * 0.12:.2f}s" '
-            f'begin="{i * 0.15:.2f}s" repeatCount="indefinite" '
-            f'calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1" '
-            f'keyTimes="0;0.5;1"/>'
-        )
-
-        # icon chip
-        s += (
-            f'<rect x="14" y="14" width="26" height="26" rx="7" '
-            f'fill="{color}" opacity="0.14"/>'
-            f'<rect x="14" y="14" width="26" height="26" rx="7" '
-            f'fill="none" stroke="{color}" stroke-width="0.9" opacity="0.4"/>'
-            f'<text x="27" y="32" text-anchor="middle" font-size="13">{icon}</text>'
-        )
+        s += f'<g transform="translate({x:.1f},0)">'
         # label
         s += (
-            f'<text x="48" y="24" font-size="9.5" fill="{MUT}" '
-            f'letter-spacing="1.1">{label.upper()}</text>'
-            f'<text x="48" y="37" font-size="8.5" fill="{MUT}" opacity="0.65">'
-            f'all time</text>'
+            f'<text x="0" y="{label_y}" font-size="9.5" fill="{MUT}" '
+            f'letter-spacing="1.3">{label.upper()}</text>'
         )
-        # the number
+        # the number - the focal point of the panel
         s += (
-            f'<text x="14" y="70" font-size="27" font-weight="700" fill="{color}" '
-            f'style="font-variant-numeric:tabular-nums">'
+            f'<text x="-1" y="{num_y}" font-size="40" font-weight="700" '
+            f'fill="{color}" style="font-variant-numeric:tabular-nums">'
             f"{value:,}"
-            f'<animate attributeName="opacity" values="0;1" dur="0.5s" '
-            f'begin="{0.1 + i * 0.08:.2f}s" fill="freeze"/>'
-            f"</text>"
+            f'<animate attributeName="opacity" values="0;1" dur="0.45s" '
+            f'begin="{0.08 + i * 0.07:.2f}s" fill="freeze"/></text>'
         )
-        # accent underline that draws in
+        # accent rule that draws itself in
         s += (
-            f'<rect x="14" y="{ch - 12}" width="0" height="2.4" rx="1.2" '
-            f'fill="{color}" opacity="0.85">'
-            f'<animate attributeName="width" from="0" to="{cw - 28}" '
-            f'dur="0.9s" begin="{0.25 + i * 0.09:.2f}s" fill="freeze" '
+            f'<rect x="0" y="{uline_y}" width="0" height="2.5" rx="1.25" '
+            f'fill="{color}" opacity="0.9">'
+            f'<animate attributeName="width" from="0" to="{col_w - 26:.1f}" '
+            f'dur="0.8s" begin="{0.2 + i * 0.08:.2f}s" fill="freeze" '
             f'calcMode="spline" keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/>'
             f"</rect>"
         )
-        # pulsing status dot, top-right of the card
+        # what the number actually counts
         s += (
-            f'<circle cx="{cw - 16}" cy="26" r="3" fill="{color}">'
-            f'<animate attributeName="opacity" values="1;0.25;1" dur="{2.4 + i * 0.1:.1f}s" '
-            f'begin="{i * 0.2:.2f}s" repeatCount="indefinite"/>'
-            f"</circle>"
+            f'<text x="0" y="{sub_y}" font-size="9" fill="{MUT}" opacity="0.8">'
+            f'{html.escape(sub)}</text>'
         )
-        s += "</g></g>"
+        s += "</g>"
 
-    # one sheen sweeping the whole grid
+    # ---- composition: own repos vs forks --------------------------------
+    # _own_repos() strips forks, so the account-wide total comes from the
+    # profile and the fork share is the remainder.
+    total_repos = int(profile.get("public_repos") or len(repos)) or len(repos)
+    own_n = len(repos)
+    fork_n = max(0, total_repos - own_n)
+    if total_repos:
+        own_pct = own_n / total_repos * 100
+        fork_pct = fork_n / total_repos * 100
+        s += (
+            f'<rect x="{pad}" y="{bar_y}" width="{w - 2 * pad}" height="7" rx="3.5" '
+            f'fill="#0b0f1a"/>'
+        )
+        # fork share first (the bulk), then the own share on top of it
+        s += (
+            f'<rect x="{pad}" y="{bar_y}" width="0" height="7" rx="3.5" '
+            f'fill="{PURPLE}" opacity="0.5">'
+            f'<animate attributeName="width" from="0" '
+            f'to="{w - 2 * pad:.1f}" dur="0.9s" begin="0.3s" fill="freeze" '
+            f'calcMode="spline" keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/>'
+            f'</rect>'
+        )
+        s += (
+            f'<rect x="{pad}" y="{bar_y}" width="0" height="7" rx="3.5" '
+            f'fill="{CYAN}">'
+            f'<animate attributeName="width" from="0" '
+            f'to="{own_pct / 100 * (w - 2 * pad):.1f}" '
+            f'dur="0.9s" begin="0.45s" fill="freeze" '
+            f'calcMode="spline" keySplines="0.2 0.8 0.3 1" keyTimes="0;1"/>'
+            f'</rect>'
+        )
+        s += (
+            f'<text x="{pad}" y="{bar_y + 22}" font-size="9" fill="{MUT}">'
+            f'<tspan fill="{CYAN}" font-weight="700">{own_n}</tspan> own'
+            f'</text>'
+            f'<text x="{w - pad}" y="{bar_y + 22}" text-anchor="end" '
+            f'font-size="9" fill="{MUT}">'
+            f'{fork_n} forked &#183; {total_repos} total</text>'
+        )
+
+    # one sheen sweeping the whole panel
     s += (
         f'<g clip-path="inset(0 round 16px)" opacity="0.9">'
         f'<rect x="-260" y="0" width="220" height="{h}" fill="url(#stSheen)" '
