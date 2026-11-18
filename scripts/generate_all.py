@@ -6,6 +6,8 @@ Run via GitHub Actions, saves static files to assets/
 
 import html
 import os
+import sys
+
 import requests
 from datetime import datetime
 from pathlib import Path
@@ -726,6 +728,20 @@ def main():
     normalize_widths.main()
 
     print("All assets generated!")
+
+    # Gate the build on the audit. SMIL fails silently - a rejected animation
+    # just leaves the element at its base value - so without this a broken
+    # asset would ship and only show up on the rendered profile page.
+    print("Auditing every asset...")
+    import audit_svg
+
+    findings = audit_svg.audit(str(ASSETS_DIR))
+    print("SVG audit")
+    audit_svg._report(findings, len(list(ASSETS_DIR.glob("*.svg"))), verbose=False)
+    if findings:
+        print(f"\n{len(findings)} problem(s) found - failing the build.",
+              file=sys.stderr)
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     main()
