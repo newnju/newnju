@@ -792,13 +792,17 @@ def daynight():
             f'dur="{flap:.2f}s" repeatCount="indefinite"/>'
             f'</path>'
             f'</g>'
-            f'<animateTransform attributeName="transform" type="translate" '
-            f'values="0 0;0 0" dur="1s" repeatCount="indefinite"/>'
             f'</g>'
         )
-        # reposition each bird
-        b[-1] = b[-1].replace("<g opacity=\"0\">",
-                              f'<g opacity="0" transform="translate({x0},{y0})">', 1)
+        # Position each bird on an outer group. The flight animation lives on
+        # an inner group: a child animateTransform REPLACES its element's
+        # transform attribute, so putting it on the positioned group (or
+        # leaving a stray no-op one there) would wipe out the translate and
+        # stack every bird at the origin.
+        b[-1] = b[-1].replace(
+            '<g opacity="0">',
+            f'<g transform="translate({x0},{y0})"><g opacity="0">', 1)
+        b[-1] = b[-1] + "</g>"
 
     # ---- hills (3 parallax layers) --------------------------------------
     b.append(f'<path d="M 0,{HORIZON} L 0,330 Q 130,282 260,326 '
@@ -832,6 +836,11 @@ def daynight():
     x = 486
     while x < 790:
         bw = random.uniform(26, 46)
+        # clamp so the last building ends inside the canvas instead of
+        # spilling past x=800 and getting cut off mid-facade
+        bw = min(bw, W - 2 - x)
+        if bw < 12:
+            break
         bh = random.uniform(40, 118)
         by = HORIZON - bh
         b.append(f'<rect x="{x:.0f}" y="{by:.0f}" width="{bw:.0f}" '

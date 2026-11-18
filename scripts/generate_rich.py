@@ -40,6 +40,29 @@ FONT = "Segoe UI, Helvetica, Arial, sans-serif"
 MONO = "Consolas, Menlo, monospace"
 
 
+def mono(vals, dur):
+    """Strictly-increasing keyTimes in [0,1] from second-offsets.
+
+    SMIL discards an animation whose keyTimes are not non-decreasing, and the
+    element then keeps its base value. Shell 0 bursts at t=0, so a naive
+    "0;{t_burst/CYCLE}" produces "0;0.0000;...", a duplicate stop that killed
+    that shell's flash and trail. Quantise, then force strict increase.
+    """
+    q = [min(1.0, max(0.0, round(v / dur, 4))) for v in vals]
+    for i in range(1, len(q)):
+        if q[i] <= q[i - 1]:
+            q[i] = min(1.0, round(q[i - 1] + 1e-4, 4))
+    for i in range(len(q) - 2, -1, -1):
+        if q[i] >= q[i + 1]:
+            q[i] = max(0.0, round(q[i + 1] - 1e-4, 4))
+    q[0] = 0.0
+    q[-1] = 1.0
+    for i in range(1, len(q)):
+        if q[i] <= q[i - 1]:
+            q[i] = round(q[i - 1] + 1e-4, 4)
+    return ";".join(f"{v:.4f}" for v in q)
+
+
 def svg(w, h, body, defs=""):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
@@ -622,8 +645,7 @@ def fireworks():
             f'<rect x="{cx - 1.2:.1f}" y="{cy:.1f}" width="2.4" '
             f'height="{GROUND - cy:.1f}" fill="{CYAN}" opacity="0.22"/>'
             f'<animate attributeName="opacity" values="0;0;0.9;0.5;0;0" '
-            f'keyTimes="0;{rise_end / CYCLE:.4f};{(rise_end + RISE) / CYCLE:.4f};'
-            f'{(rise_end + RISE + 0.2) / CYCLE:.4f};{(rise_end + RISE + 0.5) / CYCLE:.4f};1" '
+            f'keyTimes="{mono([0, rise_end, rise_end + RISE, rise_end + RISE + 0.2, rise_end + RISE + 0.5, CYCLE], CYCLE)}" '
             f'dur="{CYCLE}s" repeatCount="indefinite"/></g>'
         )
 
@@ -631,12 +653,10 @@ def fireworks():
         b.append(
             f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill="url(#fGlow)" opacity="0">'
             f'<animate attributeName="opacity" values="0;0;1;0.85;0;0" '
-            f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.04) / CYCLE:.4f};'
-            f'{(t_burst + 0.12) / CYCLE:.4f};{(t_burst + 0.3) / CYCLE:.4f};1" '
+            f'keyTimes="{mono([0, t_burst, t_burst + 0.04, t_burst + 0.12, t_burst + 0.3, CYCLE], CYCLE)}" '
             f'dur="{CYCLE}s" repeatCount="indefinite"/>'
             f'<animate attributeName="r" values="2;2;30;42;46;46" '
-            f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.1) / CYCLE:.4f};'
-            f'{(t_burst + 0.25) / CYCLE:.4f};{(t_burst + 0.45) / CYCLE:.4f};1" '
+            f'keyTimes="{mono([0, t_burst, t_burst + 0.1, t_burst + 0.25, t_burst + 0.45, CYCLE], CYCLE)}" '
             f'dur="{CYCLE}s" repeatCount="indefinite"/></circle>'
         )
 
@@ -661,8 +681,7 @@ def fireworks():
                 f'<polyline points="{tail}" fill="none" stroke="{col}" '
                 f'stroke-width="1.5" stroke-linecap="round" opacity="0">'
                 f'<animate attributeName="opacity" values="0;0;0.55;0.4;0;0" '
-                f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.05) / CYCLE:.4f};'
-                f'{(t_burst + 0.9) / CYCLE:.4f};{t_end / CYCLE:.4f};1" '
+                f'keyTimes="{mono([0, t_burst, t_burst + 0.05, t_burst + 0.9, t_end, CYCLE], CYCLE)}" '
                 f'dur="{CYCLE}s" repeatCount="indefinite"/></polyline>'
             )
             # spark head travels the path only during its window
@@ -670,14 +689,13 @@ def fireworks():
                 f'<circle cx="{pts[0][0]:.1f}" cy="{pts[0][1]:.1f}" r="2" fill="{col}" opacity="0">'
                 f'<animateMotion dur="{CYCLE}s" repeatCount="indefinite" '
                 f'keyPoints="0;0;1;1" '
-        f'keyTimes="0;{t_burst / CYCLE:.4f};{t_end / CYCLE:.4f};1" '
+                f'keyTimes="{mono([0, t_burst, t_end, CYCLE], CYCLE)}" '
                 f'calcMode="linear" '
                 f'path="M {pts[0][0]:.1f},{pts[0][1]:.1f} '
                 + " L ".join(f"{px:.1f},{py:.1f}" for px, py in pts[1:])
                 + '"/>'
                 f'<animate attributeName="opacity" values="0;0;1;0.9;0;0" '
-                f'keyTimes="0;{t_burst / CYCLE:.4f};{(t_burst + 0.05) / CYCLE:.4f};'
-                f'{(t_burst + 1.1) / CYCLE:.4f};{t_end / CYCLE:.4f};1" '
+                f'keyTimes="{mono([0, t_burst, t_burst + 0.05, t_burst + 1.1, t_end, CYCLE], CYCLE)}" '
                 f'dur="{CYCLE}s" repeatCount="indefinite"/></circle>'
             )
 
