@@ -6,8 +6,8 @@
     <rect x="40" y="-10" width="14" height="14" rx="3" fill="#f1e05a"/>
     <text x="62" y="2" font-family="Arial" font-size="14" font-weight="600" fill="#24292f">JavaScript</text>
     <rect x="270" y="-9" width="430" height="12" rx="6" fill="#eaeef2"/>
-    <rect x="270" y="-9" width="234.23310314603765" height="12" rx="6" fill="#f1e05a">
-      <animate attributeName="width" from="0" to="234.23310314603765" dur="1s" fill="freeze"/>
+    <rect x="270" y="-9" width="234.2285296504085" height="12" rx="6" fill="#f1e05a">
+      <animate attributeName="width" from="0" to="234.2285296504085" dur="1s" fill="freeze"/>
     </rect>
     <text x="712" y="2" font-family="Arial" font-size="13" font-weight="700" fill="#f1e05a">54.5%</text>
     <text x="200" y="2" text-anchor="end" font-family="Arial" font-size="11" fill="#8b949e">6 repos</text>
@@ -16,8 +16,8 @@
     <rect x="40" y="-10" width="14" height="14" rx="3" fill="#3572A5"/>
     <text x="62" y="2" font-family="Arial" font-size="14" font-weight="600" fill="#24292f">Python</text>
     <rect x="270" y="-9" width="430" height="12" rx="6" fill="#eaeef2"/>
-    <rect x="270" y="-9" width="135.18073282436123" height="12" rx="6" fill="#3572A5">
-      <animate attributeName="width" from="0" to="135.18073282436123" dur="1s" fill="freeze"/>
+    <rect x="270" y="-9" width="135.18648928923196" height="12" rx="6" fill="#3572A5">
+      <animate attributeName="width" from="0" to="135.18648928923196" dur="1s" fill="freeze"/>
     </rect>
     <text x="712" y="2" font-family="Arial" font-size="13" font-weight="700" fill="#3572A5">31.4%</text>
     <text x="200" y="2" text-anchor="end" font-family="Arial" font-size="11" fill="#8b949e">3 repos</text>
@@ -26,8 +26,8 @@
     <rect x="40" y="-10" width="14" height="14" rx="3" fill="#3178c6"/>
     <text x="62" y="2" font-family="Arial" font-size="14" font-weight="600" fill="#24292f">TypeScript</text>
     <rect x="270" y="-9" width="430" height="12" rx="6" fill="#eaeef2"/>
-    <rect x="270" y="-9" width="58.728762998205795" height="12" rx="6" fill="#3178c6">
-      <animate attributeName="width" from="0" to="58.728762998205795" dur="1s" fill="freeze"/>
+    <rect x="270" y="-9" width="58.727616295467065" height="12" rx="6" fill="#3178c6">
+      <animate attributeName="width" from="0" to="58.727616295467065" dur="1s" fill="freeze"/>
     </rect>
     <text x="712" y="2" font-family="Arial" font-size="13" font-weight="700" fill="#3178c6">13.7%</text>
     <text x="200" y="2" text-anchor="end" font-family="Arial" font-size="11" fill="#8b949e">3 repos</text>
