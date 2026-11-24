@@ -22,8 +22,6 @@
 
 ![heatmap](assets/heatmap.svg)
 
-![pulse](assets/pulse.svg)
-
 </div>
 
 ---
@@ -43,10 +41,6 @@
 <div align="center">
 
 ![radar](assets/radar-scan.svg)
-
-![spotlight](assets/spotlight.svg)
-
-![ticker](assets/ticker.svg)
 
 </div>
 
@@ -73,18 +67,10 @@
 </tr>
 <tr>
 <td align="center" width="400"><img src="assets/moon.svg" width="400" alt="moon phases"></td>
-<td align="center" width="400"><img src="assets/coffee.svg" width="400" alt="espresso"></td>
-</tr>
-<tr>
 <td align="center" width="400"><img src="assets/pacman.svg" width="400" alt="pacman maze"></td>
-<td align="center" width="400"><img src="assets/matrix.svg" width="400" alt="matrix"></td>
 </tr>
 <tr>
 <td align="center" width="400"><img src="assets/daynight.svg" width="400" alt="day night cycle"></td>
-<td align="center" width="400"><img src="assets/neofetch.svg" width="400" alt="neofetch"></td>
-</tr>
-<tr>
-<td align="center" width="400"><img src="assets/neural-network.svg" width="400" alt="neural network"></td>
 <td align="center" width="400"><img src="assets/music.svg" width="400" alt="now playing"></td>
 </tr>
 </table>

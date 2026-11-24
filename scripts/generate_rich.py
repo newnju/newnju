@@ -711,7 +711,9 @@ def main():
     save("globe.svg", globe())
     save("particles.svg", particles())
     save("circuit-board.svg", circuit_board())
-    save("neural-network.svg", neural_network())
+    # neural-network.svg is intentionally not written: the user removed it from
+    # the README, and leaving the generator wired would resurrect the asset on
+    # every daily run.
     save("fireworks.svg", fireworks())
     print("done.")
 

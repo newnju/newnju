@@ -1495,9 +1495,9 @@ def package_downloads():
 def main():
     write("aurora.svg", aurora())
     write("skill-radar.svg", skill_radar())
-    write("ticker.svg", ticker())
-    write("pulse.svg", pulse())
-    write("spotlight.svg", spotlight())
+    # ticker.svg, pulse.svg and spotlight.svg are intentionally not written:
+    # they were removed from the README, and regenerating them would put
+    # unreferenced files back on every run.
     write("heatmap.svg", heatmap())
     write("stats.svg", stats_cards())
     write("top-languages.svg", top_langs())

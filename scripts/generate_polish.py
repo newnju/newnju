@@ -886,10 +886,9 @@ def joke():
 
 def main():
     print("generating polish pass:")
-    save("coffee.svg", coffee())
-    # conway.svg is intentionally not written: the user removed it from the
-    # README, and leaving the generator wired would resurrect the asset on the
-    # next daily run.
+    # coffee.svg and conway.svg are intentionally not written: the user removed
+    # them from the README, and leaving the generators wired would resurrect the
+    # assets on every daily run.
     save("dna.svg", dna())
     save("skill-radar.svg", skill_radar())
     save("joke.svg", joke())
